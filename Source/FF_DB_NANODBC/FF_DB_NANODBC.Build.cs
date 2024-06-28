@@ -20,6 +20,9 @@ public class FF_DB_NANODBC : ModuleRules
 			new string[]
 			{
                 "Core",
+				"Json",
+                "JsonUtilities",
+                "JsonBlueprintUtilities",
 				 // ... add other public dependencies that you statically link with here ...
 			}
 			);

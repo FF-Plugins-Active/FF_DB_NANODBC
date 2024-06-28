@@ -25,3 +25,23 @@ void ANANODBC_Manager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
+
+bool ANANODBC_Manager::NANODBC_Init_Environment()
+{
+	return true;
+}
+
+bool ANANODBC_Manager::NANODBC_Connection_Create(FString& Out_Code, UNANODBC_Connection*& CreatedConnection, FString In_Server, FString In_UserName, FString In_Password, bool bUseAutoCommit)
+{
+	return true;
+}
+
+bool ANANODBC_Manager::NANODBC_Connection_Delete_Id(FString& Out_Code, FString ConnectionId)
+{
+	return true;
+}
+
+bool ANANODBC_Manager::NANODBC_Connection_Delete_Object(FString& Out_Code, UPARAM(ref) UNANODBC_Connection*& TargetConnection)
+{
+	return true;
+}
