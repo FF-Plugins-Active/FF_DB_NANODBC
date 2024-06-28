@@ -32,10 +32,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool NANODBC_Init_Environment();
-
-	UFUNCTION(BlueprintCallable)
-	virtual bool NANODBC_Connection_Create(FString& Out_Code, UNANODBC_Connection*& CreatedConnection, FString In_Server, FString In_UserName, FString In_Password, bool bUseAutoCommit);
+	virtual bool NANODBC_Connection_Create(FString& Out_Code, UNANODBC_Connection*& CreatedConnection, FString In_Server, FString In_UserName, FString In_Password);
 
 	UFUNCTION(BlueprintCallable)
 	virtual bool NANODBC_Connection_Delete_Id(FString& Out_Code, FString ConnectionId);

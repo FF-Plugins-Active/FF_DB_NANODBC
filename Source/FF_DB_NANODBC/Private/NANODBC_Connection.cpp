@@ -2,6 +2,27 @@
 
 // CONNECTION.
 
+void UNANODBC_Connection::SetConnection(connection In_Connection)
+{
+	this->NANODBC_Connection = In_Connection;
+}
+
+bool UNANODBC_Connection::SetConnectionId(FString In_Id)
+{
+	if (In_Id.IsEmpty())
+	{
+		return false;
+	}
+
+	this->ConnectionId = In_Id;
+	return true;
+}
+
+FString UNANODBC_Connection::GetConnectionId()
+{
+	return this->ConnectionId;
+}
+
 bool UNANODBC_Connection::Connection_Start(FString& Out_Code, FString In_Server, FString In_UserName, FString In_Password, bool bUseAutoCommit)
 {
 	return false;
@@ -14,6 +35,19 @@ bool UNANODBC_Connection::Connection_Stop(FString& Out_Code)
 
 bool UNANODBC_Connection::PrepareStatement(FString& Out_Code, UNANODBC_Statement*& Out_Statement, FString SQL_Statement)
 {
+	if (!NANODBC_Connection.connected())
+	{
+		return false;
+	}
+
+	const ANSICHAR* QueryString = NANODBC_TEXT(TCHAR_TO_UTF8(*SQL_Statement));
+	result QueryResult = execute(this->NANODBC_Connection, QueryString);
+
+	if (!QueryResult)
+	{
+		return false;
+	}
+
 	return false;
 }
 

@@ -26,22 +26,66 @@ void ANANODBC_Manager::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-bool ANANODBC_Manager::NANODBC_Init_Environment()
+bool ANANODBC_Manager::NANODBC_Connection_Create(FString& Out_Code, UNANODBC_Connection*& CreatedConnection, FString In_Server, FString In_UserName, FString In_Password)
 {
-	return true;
-}
+	try
+	{
+		connection ConnectionRef = connection(TCHAR_TO_UTF8(*In_Server), TCHAR_TO_UTF8(*In_UserName), TCHAR_TO_UTF8(*In_Password));
+		ConnectionRef.connect(TCHAR_TO_UTF8(*In_Server), TCHAR_TO_UTF8(*In_UserName), TCHAR_TO_UTF8(*In_Password));
 
-bool ANANODBC_Manager::NANODBC_Connection_Create(FString& Out_Code, UNANODBC_Connection*& CreatedConnection, FString In_Server, FString In_UserName, FString In_Password, bool bUseAutoCommit)
-{
+		if (!ConnectionRef.connected())
+		{
+			Out_Code = "NANODBC could not be connect target server !";
+			return false;
+		}
+
+		FString ConnectionId = In_Server + "&&" + In_UserName;
+
+		UNANODBC_Connection* ConnectionObject = NewObject<UNANODBC_Connection>();
+		ConnectionObject->SetConnection(ConnectionRef);
+		ConnectionObject->SetConnectionId(ConnectionId);
+
+		CreatedConnection = ConnectionObject;
+		
+		this->MAP_Connections.Add(ConnectionId, ConnectionObject);
+	}
+
+	catch (const std::exception& Exception)
+	{
+		Out_Code = Exception.what();
+	}
+
+	Out_Code = "NANODBC Connection to target database successfully created !";
 	return true;
 }
 
 bool ANANODBC_Manager::NANODBC_Connection_Delete_Id(FString& Out_Code, FString ConnectionId)
 {
+	if (ConnectionId.IsEmpty())
+	{
+		return false;
+	}
+
+	this->MAP_Connections.Remove(ConnectionId);
+
 	return true;
 }
 
 bool ANANODBC_Manager::NANODBC_Connection_Delete_Object(FString& Out_Code, UPARAM(ref) UNANODBC_Connection*& TargetConnection)
 {
+	if (!IsValid(TargetConnection))
+	{
+		return false;
+	}
+
+	const FString ConnectionId = TargetConnection->GetConnectionId();
+
+	if (ConnectionId.IsEmpty())
+	{
+		return false;
+	}
+
+	this->MAP_Connections.Remove(ConnectionId);
+
 	return true;
 }

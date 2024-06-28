@@ -11,6 +11,8 @@
 
 #include "NANODBC_Connection.generated.h"
 
+using namespace nanodbc;
+
 USTRUCT(BlueprintType)
 struct FF_DB_NANODBC_API FNANODBC_MetaData
 {
@@ -90,12 +92,18 @@ class FF_DB_NANODBC_API UNANODBC_Connection : public UObject
 
 protected:
 
-
+	FString ConnectionId;
+	connection NANODBC_Connection;
 
 public:
 
-	UPROPERTY(BlueprintReadOnly)
-	FString ConnectionId;
+	virtual void SetConnection(connection In_Connection);
+
+	UFUNCTION(BlueprintCallable)
+	virtual bool SetConnectionId(FString In_Id);
+	
+	UFUNCTION(BlueprintCallable)
+	virtual FString GetConnectionId();
 
 	UFUNCTION(BlueprintCallable)
 	virtual bool Connection_Start(FString& Out_Code, FString In_Server, FString In_UserName, FString In_Password, bool bUseAutoCommit);
