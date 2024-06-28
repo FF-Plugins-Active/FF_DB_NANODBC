@@ -21,19 +21,13 @@ struct FF_DB_NANODBC_API FNANODBC_MetaData
 public:
 
 	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	int32 ColumnScale = 0;
+	int32 ColumnDecimalDigit = 0;
 
 	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	int32 ColumnPrecision = 0;
+	int32 ColumnSize = 0;
 
 	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	int32 ColumnDisplaySize = 0;
-
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	int32 ColumnLenght = 0;
-
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	int32 ColumnOctetLenght = 0;
+	int32 ColumnNumber = 0;
 
 	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
 	int32 ColumnType = 0;
@@ -42,46 +36,11 @@ public:
 	FString ColumnTypeName;
 
 	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	FString BaseColumnName;
-
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
 	FString ColumnName;
 
 	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	FString ColumnLabel;
+	bool bIsNull = false;
 
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	FString BaseTableName;
-
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	FString TableName;
-
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	FString CatalogName;
-
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	FString SchemaName;
-
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	bool bIsNullable = false;
-
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	bool bIsAutoIncrement = false;
-
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	bool bIsNamed = false;
-
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	bool bIsCaseSensitive = false;
-
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	bool bIsReadOnly = false;
-
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	bool bIsSearchable = false;
-
-	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
-	bool bIsSigned = false;
 };
 
 
@@ -106,44 +65,10 @@ public:
 	virtual FString GetConnectionId();
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool Connection_Start(FString& Out_Code, FString In_Server, FString In_UserName, FString In_Password, bool bUseAutoCommit);
+	virtual bool JustExecute(FString& Out_Code, FString SQL_Statement);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool Connection_Stop(FString& Out_Code);
-
-	UFUNCTION(BlueprintCallable)
-	virtual bool PrepareStatement(FString& Out_Code, UNANODBC_Statement*& Out_Statement, FString SQL_Statement);
-
-};
-
-UCLASS(BlueprintType)
-class FF_DB_NANODBC_API UNANODBC_Statement : public UObject
-{
-	GENERATED_BODY()
-
-protected:
-
-
-
-public:
-
-	UFUNCTION(BlueprintCallable)
-	virtual void SetInt(int32 Value, int32 ParamIndex = 1);
-
-	UFUNCTION(BlueprintCallable)
-	virtual void SetString(FString Value, int32 ParamIndex = 1);
-
-	UFUNCTION(BlueprintCallable)
-	virtual void AddBatch();
-
-	UFUNCTION(BlueprintCallable)
-	virtual void ExecuteBatch(FString& Out_Code);
-
-	UFUNCTION(BlueprintCallable)
-	virtual bool CommitStatement(FString& Out_Code);
-
-	UFUNCTION(BlueprintCallable)
-	virtual bool ExecuteQuery(FString& Out_Code, UNANODBC_Result*& Out_Result);
+	virtual bool ExecuteAndGetResult(FString& Out_Code, int32& AffectedRows, UNANODBC_Result*& Out_Result, FString SQL_Statement);
 
 };
 
@@ -154,20 +79,25 @@ class FF_DB_NANODBC_API UNANODBC_Result : public UObject
 
 protected:
 
-	
+	result QueryResult;
 
 public:
 
-	UFUNCTION(BlueprintCallable)
-	virtual bool GetColumnCount(int32& ColumnCount);
+	virtual bool SetQueryResult(result In_Result);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool GetMetaDataStruct(FString& Out_Code, FNANODBC_MetaData& Out_MetaData, int32 ColumnIndex = 1);
+	virtual bool GetColumnsCount(int32& Out_Count);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool GetString(FString& Out_Code, TArray<FString>& Out_String, int32 ColumnIndex = 1);
+	virtual bool GetMetaData(FString& Out_Code, FNANODBC_MetaData& Out_MetaData, int32 ColumnIndex);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool GetInt(FString& Out_Code, TArray<int32>& Out_String, int32 ColumnIndex = 1);
+	virtual bool GetInt(FString& Out_Code, TArray<int32>& Out_Value, const FString In_ColumnName);
+
+	UFUNCTION(BlueprintCallable)
+	virtual bool GetString(FString& Out_Code, TArray<FString>& Out_Value, const FString In_ColumnName);
+
+	UFUNCTION(BlueprintCallable)
+	virtual bool GetBool(FString& Out_Code, TArray<bool>& Out_Value, const FString In_ColumnName);
 
 };

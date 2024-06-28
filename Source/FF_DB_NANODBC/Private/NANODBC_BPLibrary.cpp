@@ -46,30 +46,15 @@ FJsonObjectWrapper UNANODBC_BPLibrary::NANODBC_Print_MetaData(FNANODBC_MetaData 
 {
 	FJsonObjectWrapper JSonObject;
 
-	JSonObject.JsonObject->SetStringField("Base Table Name", In_MetaData.BaseTableName);
-	JSonObject.JsonObject->SetStringField("Table Name", In_MetaData.TableName);
-	JSonObject.JsonObject->SetStringField("Catalog Name", In_MetaData.CatalogName);
-	JSonObject.JsonObject->SetStringField("Schema Name", In_MetaData.SchemaName);
-
-	JSonObject.JsonObject->SetStringField("Base Column Name", In_MetaData.BaseColumnName);
 	JSonObject.JsonObject->SetStringField("Column Name", In_MetaData.ColumnName);
-	JSonObject.JsonObject->SetStringField("Column Label", In_MetaData.ColumnLabel);
 	JSonObject.JsonObject->SetStringField("Column Type Name", In_MetaData.ColumnTypeName);
 
 	JSonObject.JsonObject->SetNumberField("Column Type", In_MetaData.ColumnType);
-	JSonObject.JsonObject->SetNumberField("Column Lenght", In_MetaData.ColumnLenght);
-	JSonObject.JsonObject->SetNumberField("Column Display Size", In_MetaData.ColumnDisplaySize);
-	JSonObject.JsonObject->SetNumberField("Column Octet Lenght", In_MetaData.ColumnOctetLenght);
-	JSonObject.JsonObject->SetNumberField("Column Precision", In_MetaData.ColumnPrecision);
-	JSonObject.JsonObject->SetNumberField("Column Scale", In_MetaData.ColumnScale);
+	JSonObject.JsonObject->SetNumberField("Column Lenght", In_MetaData.ColumnDecimalDigit);
+	JSonObject.JsonObject->SetNumberField("Column Display Size", In_MetaData.ColumnSize);
+	JSonObject.JsonObject->SetNumberField("Column Octet Lenght", In_MetaData.ColumnNumber);
 
-	JSonObject.JsonObject->SetBoolField("Is Auto Increment", In_MetaData.bIsAutoIncrement);
-	JSonObject.JsonObject->SetBoolField("Is Case Sensitive", In_MetaData.bIsCaseSensitive);
-	JSonObject.JsonObject->SetBoolField("Is Named", In_MetaData.bIsNamed);
-	JSonObject.JsonObject->SetBoolField("Is Nullable", In_MetaData.bIsNullable);
-	JSonObject.JsonObject->SetBoolField("Is Read Only", In_MetaData.bIsReadOnly);
-	JSonObject.JsonObject->SetBoolField("Is Signed", In_MetaData.bIsSigned);
-	JSonObject.JsonObject->SetBoolField("Is Searchable", In_MetaData.bIsSearchable);
+	JSonObject.JsonObject->SetBoolField("Is Nullable", In_MetaData.bIsNull);
 
 	return JSonObject;
 }
