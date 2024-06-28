@@ -78,7 +78,7 @@ bool UNANODBC_Connection::ExecuteAndGetResult(FString& Out_Code, int32& Affected
 	return true;
 }
 
-// STATEMENT.
+// RESULT.
 
 bool UNANODBC_Result::SetQueryResult(result In_Result)
 {
