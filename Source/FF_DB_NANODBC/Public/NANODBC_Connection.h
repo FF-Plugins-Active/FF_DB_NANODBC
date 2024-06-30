@@ -77,13 +77,11 @@ protected:
 public:
 
 	virtual void SetConnection(connection In_Connection);
+	virtual bool SetConnectionId(FString In_Id);
 	virtual connection GetConnection();
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool IsConnectionValid();
-
-	UFUNCTION(BlueprintCallable)
-	virtual bool SetConnectionId(FString In_Id);
+	virtual bool IsConnectionValid();	
 	
 	UFUNCTION(BlueprintCallable)
 	virtual FString GetConnectionId();
@@ -115,7 +113,7 @@ public:
 	virtual bool GetAffectedRows(FString& Out_Code, int32& AffectedRows);
 
 	UFUNCTION(BlueprintPure)
-	virtual bool GetColumnsCount(FString& Out_Code, int32& ColumnsCount);
+	virtual int32 GetColumnsCount(FString& Out_Code);
 
 	UFUNCTION(BlueprintPure)
 	virtual int32 GetRowsCount(FString& Out_Code);

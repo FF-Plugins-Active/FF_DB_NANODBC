@@ -32,6 +32,11 @@ bool UNANODBC_Connection::SetConnectionId(FString In_Id)
 		return false;
 	}
 
+	if (!this->ConnectionId.IsEmpty())
+	{
+		return false;
+	}
+
 	this->ConnectionId = In_Id;
 	return true;
 }
@@ -117,14 +122,15 @@ bool UNANODBC_Result::SetQueryResult(result In_Result)
 				FNANODBC_DataValue EachData;
 
 				const int32 DataType = In_Result.column_datatype(Index_Column);
+				const FString DataTypeName = UTF8_TO_TCHAR(In_Result.column_datatype_name(Index_Column).c_str());
 				
 				switch (DataType)
 				{
 					case -1:
 
 						EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
-						EachData.DataType = -1;
-						EachData.DataTypeName = "text";
+						EachData.DataType = DataType;
+						EachData.DataTypeName = DataTypeName;
 						EachData.ValueRepresentation = EachData.ValString;
 
 						break;
@@ -132,8 +138,8 @@ bool UNANODBC_Result::SetQueryResult(result In_Result)
 					case 4:
 
 						EachData.ValInt32 = In_Result.get<int>(Index_Column);
-						EachData.DataType = 4;
-						EachData.DataTypeName = "int";
+						EachData.DataType = DataType;
+						EachData.DataTypeName = DataTypeName;
 						EachData.ValueRepresentation = FString::FromInt(EachData.ValInt32);
 
 						break;
@@ -176,16 +182,15 @@ bool UNANODBC_Result::GetAffectedRows(FString& Out_Code, int32& AffectedRows)
 	return true;
 }
 
-bool UNANODBC_Result::GetColumnsCount(FString& Out_Code, int32& ColumnsCount)
+int32 UNANODBC_Result::GetColumnsCount(FString& Out_Code)
 {
 	if (!this->QueryResult)
 	{
 		Out_Code = "Query result is not valid !";
-		return false;
+		return 0;
 	}
 
-	ColumnsCount = this->QueryResult.columns();
-	return true;
+	return this->QueryResult.columns();
 }
 
 int32 UNANODBC_Result::GetRowsCount(FString& Out_Code)
