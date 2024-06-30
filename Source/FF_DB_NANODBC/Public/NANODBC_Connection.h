@@ -77,6 +77,10 @@ protected:
 public:
 
 	virtual void SetConnection(connection In_Connection);
+	virtual connection GetConnection();
+
+	UFUNCTION(BlueprintCallable)
+	virtual bool IsConnectionValid();
 
 	UFUNCTION(BlueprintCallable)
 	virtual bool SetConnectionId(FString In_Id);
@@ -85,10 +89,10 @@ public:
 	virtual FString GetConnectionId();
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool JustExecute(FString& Out_Code, FString SQL_Statement);
+	virtual bool JustExecute(FString& Out_Code, FString SQL_Query);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool ExecuteAndGetResult(FString& Out_Code, UNANODBC_Result*& Out_Result, FString SQL_Statement);
+	virtual bool ExecuteAndGetResult(FString& Out_Code, UNANODBC_Result*& Out_Result, FString SQL_Query);
 
 };
 

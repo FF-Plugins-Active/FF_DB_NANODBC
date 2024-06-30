@@ -14,7 +14,7 @@
 class FRunnableThread;
 class ANANODBC_Manager;
 
-class FDB_Thread_NANODBC : public FRunnable
+class FF_DB_NANODBC_API FDB_Thread_NANODBC : public FRunnable
 {
 
 public:
@@ -40,4 +40,6 @@ private:
 	bool bStartThread = false;
 	FRunnableThread* RunnableThread = nullptr;
 
+	virtual bool CallbackProcessQuery(FString& Out_Code, result& Out_Result);
+	virtual bool ParseResult(FString& Out_Code, result In_Result);
 };

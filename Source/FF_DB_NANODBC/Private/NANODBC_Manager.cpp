@@ -89,3 +89,28 @@ bool ANANODBC_Manager::NANODBC_Connection_Delete_Object(FString& Out_Code, UPARA
 
 	return true;
 }
+
+bool ANANODBC_Manager::NANODBC_Add_Query_To_Queue(FString& Out_Code, FNANODBC_Bulk_Query_Struct Query_Struct)
+{
+	if (Query_Struct.SQL_Query.IsEmpty())
+	{
+		return false;
+	}
+
+	if (!IsValid(Query_Struct.TargetConnection))
+	{
+		return false;
+	}
+
+	if (!Query_Struct.TargetConnection->IsConnectionValid())
+	{
+		return false;
+	}
+
+	if (!this->SQL_Query_Queue.Enqueue(Query_Struct))
+	{
+		return false;
+	}
+
+	return true;
+}
