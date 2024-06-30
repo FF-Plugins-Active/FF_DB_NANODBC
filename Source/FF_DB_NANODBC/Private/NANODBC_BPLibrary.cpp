@@ -3,43 +3,37 @@
 #include "NANODBC_BPLibrary.h"
 #include "FF_DB_NANODBC.h"
 
+// UE Includes.
+#include "Kismet/KismetStringLibrary.h"
+
 UNANODBC_BPLibrary::UNANODBC_BPLibrary(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
 
 }
 
-FString UNANODBC_BPLibrary::NANODBC_Insert_Into(FString Target, TSet<FString> Placeholders)
+FString UNANODBC_BPLibrary::NANODBC_Insert_Into(FString Target, TMap<FString, FString> KeyValue)
 {
-	FString MainStatement = "INSERT INTO " + Target + " (";
+	TArray<FString> Array_Keys;
+	KeyValue.GenerateKeyArray(Array_Keys);
 
-	const int32 PlaceHoldersLenght = Placeholders.Num();
+	TArray<FString> Array_Values;
+	KeyValue.GenerateValueArray(Array_Values);
 
-	FString ValueArea;
-	for (int32 Index_PlaceHolder = 0; Index_PlaceHolder < PlaceHoldersLenght; Index_PlaceHolder++)
-	{
-		FString EachPlaceHolder = Placeholders.Array()[Index_PlaceHolder];
-		MainStatement += EachPlaceHolder;
+	const FString PlaceHoldersString = " (" + UKismetStringLibrary::JoinStringArray(Array_Keys, ", ") + ") ";
+	const FString ValuesString = " (" + UKismetStringLibrary::JoinStringArray(Array_Values, ", ") + ") ";
+	const FString MainQuery = "INSERT INTO " + Target + PlaceHoldersString + "VALUES" + ValuesString;
 
-		ValueArea += "?";
-
-		if (Index_PlaceHolder != PlaceHoldersLenght - 1)
-		{
-			MainStatement += ", ";
-
-			ValueArea += ", ";
-		}
-	}
-
-	ValueArea += ")";
-	MainStatement += ") VALUES (" + ValueArea;
-
-	return MainStatement;
+	return MainQuery;
 }
 
-FString UNANODBC_BPLibrary::NANODBC_Select_From(FString Target, FString Where, TSet<FString> Placeholders)
+FString UNANODBC_BPLibrary::NANODBC_Select_From(FString Target, FString Where, TSet<FString> PlaceHolders)
 {
-	return FString();
+	TArray<FString> Array_PlaceHolders = PlaceHolders.Array();
+	const FString PlaceHolderString = " " + UKismetStringLibrary::JoinStringArray(Array_PlaceHolders, ", ") + " ";
+	const FString MainQuery = "SELECT" + PlaceHolderString + "FROM " + Target + " " + "WHERE " + Where;
+	
+	return MainQuery;
 }
 
 FJsonObjectWrapper UNANODBC_BPLibrary::NANODBC_Print_MetaData(FNANODBC_MetaData In_MetaData)
@@ -54,7 +48,15 @@ FJsonObjectWrapper UNANODBC_BPLibrary::NANODBC_Print_MetaData(FNANODBC_MetaData 
 	JSonObject.JsonObject->SetNumberField("Column Display Size", In_MetaData.ColumnSize);
 	JSonObject.JsonObject->SetNumberField("Column Octet Lenght", In_MetaData.ColumnNumber);
 
-	JSonObject.JsonObject->SetBoolField("Is Nullable", In_MetaData.bIsNull);
-
 	return JSonObject;
+}
+
+int32 UNANODBC_BPLibrary::NANODBC_ConvertToInt(FNANODBC_DataValue In_Data)
+{
+	return In_Data.ValInt32;
+}
+
+FString UNANODBC_BPLibrary::NANODBC_ConvertToString(FNANODBC_DataValue In_Data)
+{
+	return In_Data.ValString;
 }
