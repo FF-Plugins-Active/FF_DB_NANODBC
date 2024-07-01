@@ -105,8 +105,8 @@ bool UNANODBC_Result::SetQueryResult(result In_Result)
 		return false;
 	}
 
-	int32 TempRowsCount = 0;
-	TArray<TArray<FNANODBC_DataValue>> Temp_All_Data;
+	int32 Index_Row = 0;
+	TMap<FVector2D, FNANODBC_DataValue> Temp_Data;
 
 	try
 	{
@@ -114,41 +114,37 @@ bool UNANODBC_Result::SetQueryResult(result In_Result)
 
 		while (In_Result.next())
 		{
-			TempRowsCount += 1;
-			TArray<FNANODBC_DataValue> Array_Row;
-
 			for (int32 Index_Column = 0; Index_Column < ColumnCount; Index_Column++)
 			{
-				FNANODBC_DataValue EachData;
-
 				const int32 DataType = In_Result.column_datatype(Index_Column);
 				const FString DataTypeName = UTF8_TO_TCHAR(In_Result.column_datatype_name(Index_Column).c_str());
-				
-				switch (DataType)
+
+				FNANODBC_DataValue EachData;
+				EachData.DataType = DataType;
+				EachData.DataTypeName = DataTypeName;
+
+				if (DataType == -1 || DataType == -9)
 				{
-					case -1:
-
-						EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
-						EachData.DataType = DataType;
-						EachData.DataTypeName = DataTypeName;
-						EachData.ValueRepresentation = EachData.ValString;
-
-						break;
-				
-					case 4:
-
-						EachData.ValInt32 = In_Result.get<int>(Index_Column);
-						EachData.DataType = DataType;
-						EachData.DataTypeName = DataTypeName;
-						EachData.ValueRepresentation = FString::FromInt(EachData.ValInt32);
-
-						break;
+					EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
+					EachData.ValueRepresentation = EachData.ValString;
 				}
 
-				Array_Row.Add(EachData);
+				if (DataType == 4)
+				{
+					EachData.ValInt32 = In_Result.get<int>(Index_Column);
+					EachData.ValueRepresentation = FString::FromInt(EachData.ValInt32);
+				}
+
+				if (DataType == 6)
+				{
+					EachData.ValFloat = In_Result.get<float>(Index_Column);
+					EachData.ValueRepresentation = FString::SanitizeFloat(EachData.ValFloat);
+				}
+
+				Temp_Data.Add(FVector2D(Index_Row, Index_Column), EachData);
 			}
 
-			Temp_All_Data.Add(Array_Row);
+			Index_Row += 1;
 		}
 	}
 
@@ -157,10 +153,10 @@ bool UNANODBC_Result::SetQueryResult(result In_Result)
 		FString Out_Code = Exception.what();
 	}
 
-	this->All_Data = Temp_All_Data;
 	this->QueryResult = In_Result;
-	this->RowsCount = TempRowsCount;
-
+	this->All_Data = Temp_Data;
+	this->RowsCount = Index_Row;
+	
 	return true;
 }
 
@@ -201,7 +197,7 @@ int32 UNANODBC_Result::GetRowsCount(FString& Out_Code)
 		return 0;
 	}
 	
-	return this ->RowsCount;
+	return this->RowsCount;
 }
 
 bool UNANODBC_Result::GetMetaData(FString& Out_Code, TArray<FNANODBC_MetaData>& Out_MetaData)
@@ -245,61 +241,80 @@ bool UNANODBC_Result::GetMetaData(FString& Out_Code, TArray<FNANODBC_MetaData>& 
 	return true;
 }
 
-bool UNANODBC_Result::GetDataFromRow(TArray<FNANODBC_DataValue>& Out_Value, const int32 RowIndex)
+bool UNANODBC_Result::GetDataFromRow(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, const int32 RowIndex)
 {
 	if (this->All_Data.IsEmpty())
 	{
+		Out_Code = "Data pool is empty !";
 		return false;
 	}
 
-	if (RowIndex < 0 && this->All_Data.Num() >= RowIndex)
+	if (RowIndex < 0 && this->RowsCount >= RowIndex)
 	{
+		Out_Code = "Given row index is out of data pool's range !";
 		return false;
 	}
 	
-	Out_Value = this->All_Data[RowIndex];
+	const int32 ColumnsCount = this->QueryResult.columns();
+	TArray<FNANODBC_DataValue> Temp_Array;
+
+	for (int32 Index_Column = 0; Index_Column < ColumnsCount; Index_Column++)
+	{
+		Temp_Array.Add(*this->All_Data.Find(FVector2D(RowIndex, Index_Column)));
+	}
+
+	Out_Value = Temp_Array;
 	return true;
 }
 
-bool UNANODBC_Result::GetDataFromColumnIndex(TArray<FNANODBC_DataValue>& Out_Value, const int32 ColumnIndex)
+bool UNANODBC_Result::GetDataFromColumnIndex(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, const int32 ColumnIndex)
 {
 	if (this->All_Data.IsEmpty())
 	{
+		Out_Code = "Data pool is empty !";
 		return false;
 	}
 
-	TArray<FNANODBC_DataValue> TempArray;
+	TArray<FNANODBC_DataValue> Temp_Array;
 
-	for (TArray<FNANODBC_DataValue> EachRow : this->All_Data)
+	for (int32 Index_Row = 0; Index_Row < this->RowsCount; Index_Row++)
 	{
-		if (ColumnIndex >= 0 && ColumnIndex < EachRow.Num())
-		{
-			TempArray.Add(EachRow[ColumnIndex]);
-		}
+		Temp_Array.Add(*this->All_Data.Find(FVector2D(Index_Row, ColumnIndex)));
 	}
 
-	Out_Value = TempArray;
-	return false;
+	Out_Value = Temp_Array;
+	return true;
 }
 
-bool UNANODBC_Result::GetDataFromColumnName(TArray<FNANODBC_DataValue>& Out_Value, FString ColumnName)
+bool UNANODBC_Result::GetDataFromColumnName(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, FString ColumnName)
 {
 	if (this->All_Data.IsEmpty())
 	{
+		Out_Code = "Data pool is empty !";
 		return false;
 	}
 
-	TArray<FNANODBC_DataValue> TempArray;
 	const int ColumnIndex = this->QueryResult.column(NANODBC_TEXT(TCHAR_TO_UTF8(*ColumnName)));
-	
-	for (TArray<FNANODBC_DataValue> EachRow : this->All_Data)
+	TArray<FNANODBC_DataValue> Temp_Array;
+
+	for (int32 Index_Row = 0; Index_Row < this->RowsCount; Index_Row++)
 	{
-		if (ColumnIndex >= 0 && ColumnIndex < EachRow.Num())
-		{
-			TempArray.Add(EachRow[ColumnIndex]);
-		}
+		Temp_Array.Add(*this->All_Data.Find(FVector2D(Index_Row, ColumnIndex)));
 	}
 
-	Out_Value = TempArray;
+	Out_Value = Temp_Array;
+	return true;
+}
+
+bool UNANODBC_Result::GetSingleData(FString& Out_Code, FNANODBC_DataValue& Out_Value, FVector2D Position)
+{
+	if (this->All_Data.IsEmpty())
+	{
+		Out_Code = "Data pool is empty !";
+		return false;
+	}
+
+	Out_Value = *this->All_Data.Find(Position);
+
 	return false;
 }

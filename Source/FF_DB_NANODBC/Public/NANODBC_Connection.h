@@ -20,19 +20,19 @@ struct FF_DB_NANODBC_API FNANODBC_DataValue
 
 public:
 
-	FString ValString;
+	FString ValString = "NULL";
 	int32 ValInt32 = 0;
-	double ValDouble = 0.f;
+	float ValFloat = 0.f;
 	bool ValBool = false;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 DataType = 0;
 
 	UPROPERTY(BlueprintReadOnly)
-	FString DataTypeName;
+	FString DataTypeName = "NULL";
 
 	UPROPERTY(BlueprintReadOnly)
-	FString ValueRepresentation;
+	FString ValueRepresentation = "NULL";
 
 };
 
@@ -102,7 +102,7 @@ class FF_DB_NANODBC_API UNANODBC_Result : public UObject
 protected:
 
 	result QueryResult;
-	TArray<TArray<FNANODBC_DataValue>> All_Data;
+	TMap<FVector2D, FNANODBC_DataValue> All_Data;
 	int32 RowsCount = 0;
 
 public:
@@ -122,12 +122,15 @@ public:
 	virtual bool GetMetaData(FString& Out_Code, TArray<FNANODBC_MetaData>& Out_MetaData);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool GetDataFromRow(TArray<FNANODBC_DataValue>& Out_Value, const int32 RowIndex);
+	virtual bool GetDataFromRow(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, const int32 RowIndex);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool GetDataFromColumnIndex(TArray<FNANODBC_DataValue>& Out_Value, const int32 ColumnIndex);
+	virtual bool GetDataFromColumnIndex(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, const int32 ColumnIndex);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool GetDataFromColumnName(TArray<FNANODBC_DataValue>& Out_Value, FString ColumnName);
+	virtual bool GetDataFromColumnName(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, FString ColumnName);
+
+	UFUNCTION(BlueprintCallable)
+	virtual bool GetSingleData(FString& Out_Code, FNANODBC_DataValue& Out_Value, FVector2D Position);
 
 };
