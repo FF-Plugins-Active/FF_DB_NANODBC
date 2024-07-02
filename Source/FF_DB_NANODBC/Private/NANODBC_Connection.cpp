@@ -1,5 +1,8 @@
 #include "NANODBC_Connection.h"
 
+// UE Includes.
+#include "Kismet/KismetMathLibrary.h"
+
 // CONNECTION.
 
 void UNANODBC_Connection::SetConnection(connection In_Connection)
@@ -110,6 +113,7 @@ bool UNANODBC_Result::SetQueryResult(result In_Result)
 
 	try
 	{
+		In_Result.unbind();
 		const int32 ColumnCount = In_Result.columns();
 
 		while (In_Result.next())
@@ -118,27 +122,74 @@ bool UNANODBC_Result::SetQueryResult(result In_Result)
 			{
 				const int32 DataType = In_Result.column_datatype(Index_Column);
 				const FString DataTypeName = UTF8_TO_TCHAR(In_Result.column_datatype_name(Index_Column).c_str());
+				const FString ColumnName = UTF8_TO_TCHAR(In_Result.column_name(Index_Column).c_str());
 
 				FNANODBC_DataValue EachData;
 				EachData.DataType = DataType;
 				EachData.DataTypeName = DataTypeName;
+				EachData.ColumnName = ColumnName;
 
-				if (DataType == -1 || DataType == -9)
+				switch (DataType)
 				{
-					EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
-					EachData.ValueRepresentation = EachData.ValString;
-				}
+					case -9:
+					{
+						// MSSQL's "time" dateType is an nvarchar, too.
 
-				if (DataType == 4)
-				{
-					EachData.ValInt32 = In_Result.get<int>(Index_Column);
-					EachData.ValueRepresentation = FString::FromInt(EachData.ValInt32);
-				}
+						EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
+						EachData.ValueRepresentation = EachData.ValString;
 
-				if (DataType == 6)
-				{
-					EachData.ValFloat = In_Result.get<float>(Index_Column);
-					EachData.ValueRepresentation = FString::SanitizeFloat(EachData.ValFloat);
+						break;
+					}
+
+					case -2:
+					{
+						nanodbc::timestamp TimeStamp = In_Result.get<nanodbc::timestamp>(Index_Column);
+						
+						FDateTime DateTime = UKismetMathLibrary::MakeDateTime(TimeStamp.year, TimeStamp.month, TimeStamp.day, TimeStamp.hour, TimeStamp.min, TimeStamp.sec, TimeStamp.fract);
+						EachData.ValDateTime = DateTime;
+						EachData.ValueRepresentation = DateTime.ToString();
+					}
+					
+					case -1:
+					{
+						EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
+						EachData.ValueRepresentation = EachData.ValString;
+
+						break;
+					}
+
+					case 4:
+					{
+						EachData.ValInt32 = In_Result.get<int>(Index_Column);
+						EachData.ValueRepresentation = FString::FromInt(EachData.ValInt32);
+
+						break;
+					}
+				
+					case 6:
+					{
+						EachData.ValFloat = In_Result.get<float>(Index_Column);
+						EachData.ValueRepresentation = FString::SanitizeFloat(EachData.ValFloat);
+
+						break;
+					}
+						
+					case 93:
+					{
+						nanodbc::date Section_Date = In_Result.get<nanodbc::date>(Index_Column);
+						nanodbc::time Section_Time = In_Result.get<nanodbc::time>(Index_Column);
+						
+						FDateTime DateTime = UKismetMathLibrary::MakeDateTime(Section_Date.year, Section_Date.month, Section_Date.day, Section_Time.hour, Section_Time.min, Section_Time.sec);
+						EachData.ValDateTime = DateTime;
+						EachData.ValueRepresentation = DateTime.ToString();
+
+						break;
+					}
+
+					default:
+					{
+						break;
+					}
 				}
 
 				Temp_Data.Add(FVector2D(Index_Row, Index_Column), EachData);
@@ -314,7 +365,16 @@ bool UNANODBC_Result::GetSingleData(FString& Out_Code, FNANODBC_DataValue& Out_V
 		return false;
 	}
 
-	Out_Value = *this->All_Data.Find(Position);
+	FNANODBC_DataValue* TempValue = this->All_Data.Find(Position);
 
-	return false;
+	if (TempValue)
+	{
+		Out_Value = *TempValue;
+		return true;
+	}
+
+	else
+	{
+		return false;
+	}
 }

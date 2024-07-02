@@ -20,19 +20,23 @@ struct FF_DB_NANODBC_API FNANODBC_DataValue
 
 public:
 
-	FString ValString = "NULL";
+	FString ValString;
 	int32 ValInt32 = 0;
 	float ValFloat = 0.f;
 	bool ValBool = false;
+	FDateTime ValDateTime;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 DataType = 0;
 
 	UPROPERTY(BlueprintReadOnly)
-	FString DataTypeName = "NULL";
+	FString DataTypeName;
 
 	UPROPERTY(BlueprintReadOnly)
-	FString ValueRepresentation = "NULL";
+	FString ColumnName;
+
+	UPROPERTY(BlueprintReadOnly)
+	FString ValueRepresentation;
 
 };
 
