@@ -22,7 +22,7 @@ public:
 
 	FString ValString;
 	int32 ValInt32 = 0;
-	float ValFloat = 0.f;
+	float ValDouble = (double)0.f;
 	bool ValBool = false;
 	FDateTime ValDateTime;
 
@@ -111,7 +111,7 @@ protected:
 
 public:
 
-	virtual bool SetQueryResult(result In_Result);
+	virtual bool SetQueryResult(FString& Out_Code, result In_Result);
 
 	UFUNCTION(BlueprintPure)
 	virtual bool GetAffectedRows(FString& Out_Code, int32& AffectedRows);

@@ -94,14 +94,14 @@ bool UNANODBC_Connection::ExecuteAndGetResult(FString& Out_Code, UNANODBC_Result
 	}
 
 	Out_Result = NewObject<UNANODBC_Result>();
-	Out_Result->SetQueryResult(QueryResult);
+	Out_Result->SetQueryResult(Out_Code, QueryResult);
 
 	return true;
 }
 
 // RESULT.
 
-bool UNANODBC_Result::SetQueryResult(result In_Result)
+bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 {
 	if (!In_Result)
 	{
@@ -113,7 +113,8 @@ bool UNANODBC_Result::SetQueryResult(result In_Result)
 
 	try
 	{
-		In_Result.unbind();
+		//In_Result.unbind();
+
 		const int32 ColumnCount = In_Result.columns();
 
 		while (In_Result.next())
@@ -129,69 +130,35 @@ bool UNANODBC_Result::SetQueryResult(result In_Result)
 				EachData.DataTypeName = DataTypeName;
 				EachData.ColumnName = ColumnName;
 
-				switch (DataType)
+				if (DataType == -9 || DataType == -1 || DataType == 93)
 				{
-					case -9:
-					{
-						// MSSQL's "time" dateType is an nvarchar, too.
-
-						EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
-						EachData.ValueRepresentation = EachData.ValString;
-
-						break;
-					}
-
-					case -2:
-					{
-						nanodbc::timestamp TimeStamp = In_Result.get<nanodbc::timestamp>(Index_Column);
-						
-						FDateTime DateTime = UKismetMathLibrary::MakeDateTime(TimeStamp.year, TimeStamp.month, TimeStamp.day, TimeStamp.hour, TimeStamp.min, TimeStamp.sec, TimeStamp.fract);
-						EachData.ValDateTime = DateTime;
-						EachData.ValueRepresentation = DateTime.ToString();
-					}
-					
-					case -1:
-					{
-						EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
-						EachData.ValueRepresentation = EachData.ValString;
-
-						break;
-					}
-
-					case 4:
-					{
-						EachData.ValInt32 = In_Result.get<int>(Index_Column);
-						EachData.ValueRepresentation = FString::FromInt(EachData.ValInt32);
-
-						break;
-					}
-				
-					case 6:
-					{
-						EachData.ValFloat = In_Result.get<float>(Index_Column);
-						EachData.ValueRepresentation = FString::SanitizeFloat(EachData.ValFloat);
-
-						break;
-					}
-						
-					case 93:
-					{
-						nanodbc::date Section_Date = In_Result.get<nanodbc::date>(Index_Column);
-						nanodbc::time Section_Time = In_Result.get<nanodbc::time>(Index_Column);
-						
-						FDateTime DateTime = UKismetMathLibrary::MakeDateTime(Section_Date.year, Section_Date.month, Section_Date.day, Section_Time.hour, Section_Time.min, Section_Time.sec);
-						EachData.ValDateTime = DateTime;
-						EachData.ValueRepresentation = DateTime.ToString();
-
-						break;
-					}
-
-					default:
-					{
-						break;
-					}
+					EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
+					EachData.ValueRepresentation = EachData.ValString;
 				}
 
+				if (DataType == 4)
+				{
+					EachData.ValInt32 = In_Result.get<int>(Index_Column);
+					EachData.ValueRepresentation = FString::FromInt(EachData.ValInt32);
+				}
+
+				if (DataType == 6)
+				{
+					EachData.ValDouble = In_Result.get<double>(Index_Column);
+					EachData.ValueRepresentation = FString::SanitizeFloat(EachData.ValDouble);
+				}
+
+				if (DataType == -2)
+				{
+					nanodbc::timestamp TimeStamp = In_Result.get<nanodbc::timestamp>(Index_Column);
+					GEngine->AddOnScreenDebugMessage(-1, 30, FColor::Red, "Anan");
+					//GEngine->AddOnScreenDebugMessage(-1, 30, FColor::Red, FString::FromInt(TimeStamp.hour) + ":" + FString::FromInt(TimeStamp.min) + ":" + FString::FromInt(TimeStamp.sec));
+
+					//FDateTime DateTime = UKismetMathLibrary::MakeDateTime(TimeStamp.year, TimeStamp.month, TimeStamp.day, TimeStamp.hour, TimeStamp.min, TimeStamp.sec, TimeStamp.fract);
+					//EachData.ValDateTime = DateTime;
+					//EachData.ValueRepresentation = DateTime.ToString();
+				}
+				
 				Temp_Data.Add(FVector2D(Index_Row, Index_Column), EachData);
 			}
 
@@ -201,7 +168,8 @@ bool UNANODBC_Result::SetQueryResult(result In_Result)
 
 	catch (const std::exception& Exception)
 	{
-		FString Out_Code = Exception.what();
+		Out_Code = Exception.what();
+		return false;
 	}
 
 	this->QueryResult = In_Result;
