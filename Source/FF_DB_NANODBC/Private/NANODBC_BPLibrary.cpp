@@ -50,13 +50,3 @@ FJsonObjectWrapper UNANODBC_BPLibrary::NANODBC_Print_MetaData(FNANODBC_MetaData 
 
 	return JSonObject;
 }
-
-int32 UNANODBC_BPLibrary::NANODBC_ConvertToInt(FNANODBC_DataValue In_Data)
-{
-	return In_Data.ValInt32;
-}
-
-FString UNANODBC_BPLibrary::NANODBC_ConvertToString(FNANODBC_DataValue In_Data)
-{
-	return In_Data.ValString;
-}

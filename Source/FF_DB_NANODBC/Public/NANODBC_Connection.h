@@ -20,11 +20,23 @@ struct FF_DB_NANODBC_API FNANODBC_DataValue
 
 public:
 
-	FString ValString;
-	int32 ValInt32 = 0;
-	float ValDouble = (double)0.f;
-	bool ValBool = false;
-	FDateTime ValDateTime;
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "Use it for \"datetime, nvarchar, text\""))
+	FString String;
+	
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "Use it for \"int32, timestamp\""))
+	int32 Integer32 = 0;
+
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "Use it for \"int32, timestamp\""))
+	int64 Integer64 = 0;
+	
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
+	float Double = (double)0.f;
+	
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
+	bool Bool = false;
+	
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
+	FDateTime DateTime;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 DataType = 0;
@@ -36,7 +48,10 @@ public:
 	FString ColumnName;
 
 	UPROPERTY(BlueprintReadOnly)
-	FString ValueRepresentation;
+	FString Preview;
+
+	UPROPERTY(BlueprintReadOnly)
+	FString Note;
 
 };
 

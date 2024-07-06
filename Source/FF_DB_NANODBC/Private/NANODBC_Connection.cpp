@@ -92,11 +92,9 @@ bool UNANODBC_Connection::ExecuteAndGetResult(FString& Out_Code, UNANODBC_Result
 		Out_Code = Exception.what();
 		return false;
 	}
-
+	
 	Out_Result = NewObject<UNANODBC_Result>();
-	Out_Result->SetQueryResult(Out_Code, QueryResult);
-
-	return true;
+	return Out_Result->SetQueryResult(Out_Code, QueryResult);
 }
 
 // RESULT.
@@ -108,15 +106,20 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 		return false;
 	}
 
+	this->QueryResult = In_Result;
+	const int32 ColumnCount = In_Result.columns();
+
+	if (In_Result.has_affected_rows() && ColumnCount == 0)
+	{
+		Out_Code = "NANODBC : This query is only for updating data. There is no result to show !";
+		return true;
+	}
+
 	int32 Index_Row = 0;
 	TMap<FVector2D, FNANODBC_DataValue> Temp_Data;
 
 	try
 	{
-		//In_Result.unbind();
-
-		const int32 ColumnCount = In_Result.columns();
-
 		while (In_Result.next())
 		{
 			for (int32 Index_Column = 0; Index_Column < ColumnCount; Index_Column++)
@@ -132,44 +135,49 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 
 				switch (DataType)
 				{
-					// NVARCHAR & TIME
+					// NVARCHAR & DATE & TIME
 					case -9:
 					{
-						EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
-						EachData.ValueRepresentation = EachData.ValString;
+						EachData.String = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
+						EachData.Preview = EachData.String;
 						break;
 					}
 
-					// TODO: TIMESTAMP
+					// INT64 & BIGINT
+					case -5:
+					{
+						EachData.Integer64 = In_Result.get<long long int>(Index_Column);
+						EachData.Preview = FString::FromInt(EachData.Integer64);
+					}
+
+					// TIMESTAMP: nanodbc::timestamp is not SQL timestamp. We use it to check if rows changed since last retriving or not.
 					case -2:
 					{
-						nanodbc::string TimeStamp = In_Result.get<nanodbc::string>(Index_Column);
-						EachData.ValString = UTF8_TO_TCHAR(TimeStamp.c_str());
-						EachData.ValueRepresentation = EachData.ValString;
+						EachData.Note = "You have to use \"CAST(column_name AS int) AS column_name\" in your query !";
 						break;
 					}
 
 					// TEXT
 					case -1:
 					{
-						EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
-						EachData.ValueRepresentation = EachData.ValString;
+						EachData.String = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
+						EachData.Preview = EachData.String;
 						break;
 					}
 
-					// INT
+					// INT32
 					case 4:
 					{
-						EachData.ValInt32 = In_Result.get<int>(Index_Column);
-						EachData.ValueRepresentation = FString::FromInt(EachData.ValInt32);
+						EachData.Integer32 = In_Result.get<int>(Index_Column);
+						EachData.Preview = FString::FromInt(EachData.Integer32);
 						break;
 					}
 
 					// FLOAT & DOUBLE
 					case 6:
 					{
-						EachData.ValDouble = In_Result.get<double>(Index_Column);
-						EachData.ValueRepresentation = FString::SanitizeFloat(EachData.ValDouble);
+						EachData.Double = In_Result.get<double>(Index_Column);
+						EachData.Preview = FString::SanitizeFloat(EachData.Double);
 						break;
 					}
 
@@ -189,17 +197,18 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 						int32 Milisecond = Raw_TimeStamp.fract / 10000000;
 
 						// Debug Purpose
-						FString CustomString = FString::Printf(TEXT("%d, %d, %d, %d, %d, %d, %d"), Year, Month, Day, Hour, Minute, Second, Milisecond);
+						FString CustomString = FString::Printf(TEXT("%d-%d-%d_%d:%d:%d.%d"), Year, Month, Day, Hour, Minute, Second, Raw_TimeStamp.fract);
 
 						FDateTime DateTime = FDateTime(Year, Month, Day, Hour, Minute, Second, Milisecond);
-						EachData.ValDateTime = DateTime;
-						EachData.ValueRepresentation = DateTime.ToString();
+						EachData.DateTime = DateTime;
+						EachData.Preview = DateTime.ToString();
 
 						break;
 					}
 
 					default:
 					{
+						EachData.Note = "Currently there is no parser for this data type. Please convert it to another known type in your query !";
 						break;
 					}
 				}
@@ -213,11 +222,18 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 
 	catch (const std::exception& Exception)
 	{
-		Out_Code = Exception.what();
+		FString ExceptionString = Exception.what();
+
+		if (ExceptionString.Contains("invalid descriptor index"))
+		{
+			ExceptionString += " -> Please update your query like putting columns with long data (for example: text and nvarchar) at the end. This is an ODBC limitation.";
+		}
+
+		Out_Code = ExceptionString;
+
 		return false;
 	}
 
-	this->QueryResult = In_Result;
 	this->All_Data = Temp_Data;
 	this->RowsCount = Index_Row;
 	
