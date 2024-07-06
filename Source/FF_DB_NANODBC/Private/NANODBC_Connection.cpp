@@ -130,35 +130,80 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 				EachData.DataTypeName = DataTypeName;
 				EachData.ColumnName = ColumnName;
 
-				if (DataType == -9 || DataType == -1 || DataType == 93)
+				switch (DataType)
 				{
-					EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
-					EachData.ValueRepresentation = EachData.ValString;
+					// NVARCHAR & TIME
+					case -9:
+					{
+						EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
+						EachData.ValueRepresentation = EachData.ValString;
+						break;
+					}
+
+					// TODO: TIMESTAMP
+					case -2:
+					{
+						nanodbc::string TimeStamp = In_Result.get<nanodbc::string>(Index_Column);
+						EachData.ValString = UTF8_TO_TCHAR(TimeStamp.c_str());
+						EachData.ValueRepresentation = EachData.ValString;
+						break;
+					}
+
+					// TEXT
+					case -1:
+					{
+						EachData.ValString = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
+						EachData.ValueRepresentation = EachData.ValString;
+						break;
+					}
+
+					// INT
+					case 4:
+					{
+						EachData.ValInt32 = In_Result.get<int>(Index_Column);
+						EachData.ValueRepresentation = FString::FromInt(EachData.ValInt32);
+						break;
+					}
+
+					// FLOAT & DOUBLE
+					case 6:
+					{
+						EachData.ValDouble = In_Result.get<double>(Index_Column);
+						EachData.ValueRepresentation = FString::SanitizeFloat(EachData.ValDouble);
+						break;
+					}
+
+					// DATETIME
+					case 93:
+					{
+						nanodbc::timestamp Raw_TimeStamp = In_Result.get<nanodbc::timestamp>(Index_Column);
+
+						int32 Year = Raw_TimeStamp.year;
+						int32 Month = Raw_TimeStamp.month;
+						int32 Day = Raw_TimeStamp.day;
+						int32 Hour = Raw_TimeStamp.hour;
+						int32 Minute = Raw_TimeStamp.min;
+						int32 Second = Raw_TimeStamp.sec;
+
+						// We need only first 3 digits.
+						int32 Milisecond = Raw_TimeStamp.fract / 10000000;
+
+						// Debug Purpose
+						FString CustomString = FString::Printf(TEXT("%d, %d, %d, %d, %d, %d, %d"), Year, Month, Day, Hour, Minute, Second, Milisecond);
+
+						FDateTime DateTime = FDateTime(Year, Month, Day, Hour, Minute, Second, Milisecond);
+						EachData.ValDateTime = DateTime;
+						EachData.ValueRepresentation = DateTime.ToString();
+
+						break;
+					}
+
+					default:
+					{
+						break;
+					}
 				}
 
-				if (DataType == 4)
-				{
-					EachData.ValInt32 = In_Result.get<int>(Index_Column);
-					EachData.ValueRepresentation = FString::FromInt(EachData.ValInt32);
-				}
-
-				if (DataType == 6)
-				{
-					EachData.ValDouble = In_Result.get<double>(Index_Column);
-					EachData.ValueRepresentation = FString::SanitizeFloat(EachData.ValDouble);
-				}
-
-				if (DataType == -2)
-				{
-					nanodbc::timestamp TimeStamp = In_Result.get<nanodbc::timestamp>(Index_Column);
-					GEngine->AddOnScreenDebugMessage(-1, 30, FColor::Red, "Anan");
-					//GEngine->AddOnScreenDebugMessage(-1, 30, FColor::Red, FString::FromInt(TimeStamp.hour) + ":" + FString::FromInt(TimeStamp.min) + ":" + FString::FromInt(TimeStamp.sec));
-
-					//FDateTime DateTime = UKismetMathLibrary::MakeDateTime(TimeStamp.year, TimeStamp.month, TimeStamp.day, TimeStamp.hour, TimeStamp.min, TimeStamp.sec, TimeStamp.fract);
-					//EachData.ValDateTime = DateTime;
-					//EachData.ValueRepresentation = DateTime.ToString();
-				}
-				
 				Temp_Data.Add(FVector2D(Index_Row, Index_Column), EachData);
 			}
 
