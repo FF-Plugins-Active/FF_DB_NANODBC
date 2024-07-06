@@ -150,17 +150,31 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 					// TIMESTAMP: nanodbc::timestamp is not SQL timestamp. We use it to check if rows changed since last retriving or not.
 					case -2:
 					{
+						std::vector<uint8_t> TempData = In_Result.get<std::vector<std::uint8_t>>(Index_Column);
+						
+						std::stringstream StringStream;
+						for (auto&& EachByte : TempData)
+						{
+							StringStream << std::hex << static_cast<int>(EachByte);
+						}
+						
 						/*
-						* This will convert hex string to decimal
-						* 
-						std::string RawString = TCHAR_TO_UTF8(*PreviewString);
-						unsigned int TimeStampInt = std::stoul(RawString, nullptr, 16);
+						for (std::size_t Index_Bytes = 0; Index_Bytes < TempData.size(); Index_Bytes++)
+						{
+							if (Index_Bytes != 0)
+							{
+								StringStream << "";
+							}
 
-						EachData.Integer64 = TimeStampInt;
-						EachData.Preview += " - " + FString::FromInt(TimeStampInt);
+							StringStream << std::hex << static_cast<int>(TempData[Index_Bytes]);
+						}
 						*/
 
-						EachData.Note = "You have to use \"CAST(column_name AS int) AS column_name\" in your query !";
+						unsigned int TimeStampInt = std::stoul(StringStream.str(), nullptr, 16);
+						FString TimeStampString = UTF8_TO_TCHAR(StringStream.str().c_str());
+
+						EachData.Integer64 = TimeStampInt;
+						EachData.Preview = TimeStampString + " - " + FString::FromInt(TimeStampInt);
 						break;
 					}
 
