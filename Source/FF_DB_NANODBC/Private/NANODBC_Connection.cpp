@@ -1,8 +1,5 @@
 #include "NANODBC_Connection.h"
 
-// UE Includes.
-#include "Kismet/KismetMathLibrary.h"
-
 // CONNECTION.
 
 void UNANODBC_Connection::SetConnection(connection In_Connection)
@@ -153,6 +150,16 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 					// TIMESTAMP: nanodbc::timestamp is not SQL timestamp. We use it to check if rows changed since last retriving or not.
 					case -2:
 					{
+						/*
+						* This will convert hex string to decimal
+						* 
+						std::string RawString = TCHAR_TO_UTF8(*PreviewString);
+						unsigned int TimeStampInt = std::stoul(RawString, nullptr, 16);
+
+						EachData.Integer64 = TimeStampInt;
+						EachData.Preview += " - " + FString::FromInt(TimeStampInt);
+						*/
+
 						EachData.Note = "You have to use \"CAST(column_name AS int) AS column_name\" in your query !";
 						break;
 					}
