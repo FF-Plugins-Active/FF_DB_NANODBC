@@ -23,10 +23,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "Use it for \"datetime, nvarchar, text\""))
 	FString String;
 	
-	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "Use it for \"int32, timestamp\""))
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "Use it for \"int32\""))
 	int32 Integer32 = 0;
 
-	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "Use it for \"int32, timestamp\""))
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "Use it for \"int32\""))
 	int64 Integer64 = 0;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
@@ -38,19 +38,19 @@ public:
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
 	FDateTime DateTime;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
 	int32 DataType = 0;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
 	FString DataTypeName;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
 	FString ColumnName;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
 	FString Preview;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
 	FString Note;
 
 };

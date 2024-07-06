@@ -189,19 +189,16 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 						int32 Year = Raw_TimeStamp.year;
 						int32 Month = Raw_TimeStamp.month;
 						int32 Day = Raw_TimeStamp.day;
-						int32 Hour = Raw_TimeStamp.hour;
-						int32 Minute = Raw_TimeStamp.min;
-						int32 Second = Raw_TimeStamp.sec;
+						int32 Hours = Raw_TimeStamp.hour;
+						int32 Minutes = Raw_TimeStamp.min;
+						int32 Seconds = Raw_TimeStamp.sec;
 
 						// We need only first 3 digits.
-						int32 Milisecond = Raw_TimeStamp.fract / 10000000;
+						int32 Milliseconds = Raw_TimeStamp.fract / 1000000;
 
-						// Debug Purpose
-						FString CustomString = FString::Printf(TEXT("%d-%d-%d_%d:%d:%d.%d"), Year, Month, Day, Hour, Minute, Second, Raw_TimeStamp.fract);
-
-						FDateTime DateTime = FDateTime(Year, Month, Day, Hour, Minute, Second, Milisecond);
+						FDateTime DateTime = FDateTime(Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
 						EachData.DateTime = DateTime;
-						EachData.Preview = DateTime.ToString();
+						EachData.Preview = FString::Printf(TEXT("%d-&d-%d %d:%d:%d:%d"), Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
 
 						break;
 					}
