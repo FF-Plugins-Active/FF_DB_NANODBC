@@ -30,7 +30,7 @@ public:
 	int64 Integer64 = 0;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
-	float Double = (double)0.f;
+	double Double = (double)0.f;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
 	bool Bool = false;
