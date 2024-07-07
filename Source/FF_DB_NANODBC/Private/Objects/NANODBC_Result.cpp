@@ -1,100 +1,4 @@
-#include "NANODBC_Connection.h"
-
-// CONNECTION.
-
-void UNANODBC_Connection::SetConnection(connection In_Connection)
-{
-	this->NANODBC_Connection = In_Connection;
-}
-
-connection UNANODBC_Connection::GetConnection()
-{
-	return this->NANODBC_Connection;
-}
-
-bool UNANODBC_Connection::IsConnectionValid()
-{
-	if (this->NANODBC_Connection.connected())
-	{
-		return true;
-	}
-
-	else
-	{
-		return false;
-	}
-}
-
-bool UNANODBC_Connection::SetConnectionId(FString In_Id)
-{
-	if (In_Id.IsEmpty())
-	{
-		return false;
-	}
-
-	if (!this->ConnectionId.IsEmpty())
-	{
-		return false;
-	}
-
-	this->ConnectionId = In_Id;
-	return true;
-}
-
-FString UNANODBC_Connection::GetConnectionId()
-{
-	return this->ConnectionId;
-}
-
-bool UNANODBC_Connection::JustExecute(FString& Out_Code, FString SQL_Query)
-{
-	if (!NANODBC_Connection.connected())
-	{
-		return false;
-	}
-
-	const ANSICHAR* QueryString = NANODBC_TEXT(TCHAR_TO_UTF8(*SQL_Query));
-
-	try
-	{
-		just_execute(this->NANODBC_Connection, QueryString);
-	}
-
-	catch (const std::exception& Exception)
-	{
-		Out_Code = Exception.what();
-		return false;
-	}
-
-	return true;
-}
-
-bool UNANODBC_Connection::ExecuteAndGetResult(FString& Out_Code, UNANODBC_Result*& Out_Result, FString SQL_Query)
-{
-	if (!NANODBC_Connection.connected())
-	{
-		return false;
-	}
-	
-	const ANSICHAR* QueryString = NANODBC_TEXT(TCHAR_TO_UTF8(*SQL_Query));
-	result QueryResult;
-	
-	try
-	{
-		QueryResult = execute(this->NANODBC_Connection, QueryString);
-	}
-
-	catch (const std::exception& Exception)
-	{
-		Out_Code = Exception.what();
-		return false;
-	}
-	
-	Out_Result = NewObject<UNANODBC_Result>();
-	return Out_Result->SetQueryResult(Out_Code, QueryResult);
-}
-
-// RESULT.
+#include "Objects/NANODBC_Result.h"
 
 bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 {
@@ -132,98 +36,98 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 
 				switch (DataType)
 				{
-					case -9:
-					{
-						// NVARCHAR & DATE & TIME
+				case -9:
+				{
+					// NVARCHAR & DATE & TIME
 
-						EachData.String = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
-						EachData.Preview = EachData.String;
-						break;
+					EachData.String = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
+					EachData.Preview = EachData.String;
+					break;
+				}
+
+				case -5:
+				{
+					// INT64 & BIGINT
+
+					EachData.Integer64 = In_Result.get<long long int>(Index_Column);
+					EachData.Preview = FString::FromInt(EachData.Integer64);
+					break;
+				}
+
+				case -2:
+				{
+					// TIMESTAMP: nanodbc::timestamp is not SQL timestamp. We use it to check if rows changed since last retriving or not.
+
+					std::vector<uint8_t> TempData = In_Result.get<std::vector<std::uint8_t>>(Index_Column);
+
+					std::stringstream StringStream;
+					for (auto&& EachByte : TempData)
+					{
+						StringStream << std::hex << static_cast<int>(EachByte);
 					}
 
-					case -5:
-					{
-						// INT64 & BIGINT
+					const std::string RawString = StringStream.str();
+					const unsigned int TimeStampInt = std::stoul(RawString, nullptr, 16);
+					const FString TimeStampString = UTF8_TO_TCHAR(RawString.c_str());
 
-						EachData.Integer64 = In_Result.get<long long int>(Index_Column);
-						EachData.Preview = FString::FromInt(EachData.Integer64);
-						break;
-					}
+					EachData.Integer64 = TimeStampInt;
+					EachData.Preview = TimeStampString + " - " + FString::FromInt(TimeStampInt);
+					break;
+				}
 
-					case -2:
-					{
-						// TIMESTAMP: nanodbc::timestamp is not SQL timestamp. We use it to check if rows changed since last retriving or not.
+				case -1:
+				{
+					// TEXT
 
-						std::vector<uint8_t> TempData = In_Result.get<std::vector<std::uint8_t>>(Index_Column);
-						
-						std::stringstream StringStream;
-						for (auto&& EachByte : TempData)
-						{
-							StringStream << std::hex << static_cast<int>(EachByte);
-						}
+					EachData.String = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
+					EachData.Preview = EachData.String;
+					break;
+				}
 
-						const std::string RawString = StringStream.str();
-						const unsigned int TimeStampInt = std::stoul(RawString, nullptr, 16);
-						const FString TimeStampString = UTF8_TO_TCHAR(RawString.c_str());
+				case 4:
+				{
+					// INT32
 
-						EachData.Integer64 = TimeStampInt;
-						EachData.Preview = TimeStampString + " - " + FString::FromInt(TimeStampInt);
-						break;
-					}
+					EachData.Integer32 = In_Result.get<int>(Index_Column);
+					EachData.Preview = FString::FromInt(EachData.Integer32);
+					break;
+				}
 
-					case -1:
-					{
-						// TEXT
+				case 6:
+				{
+					// FLOAT & DOUBLE
 
-						EachData.String = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
-						EachData.Preview = EachData.String;
-						break;
-					}
-		
-					case 4:
-					{
-						// INT32
+					EachData.Double = In_Result.get<double>(Index_Column);
+					EachData.Preview = FString::SanitizeFloat(EachData.Double);
+					break;
+				}
 
-						EachData.Integer32 = In_Result.get<int>(Index_Column);
-						EachData.Preview = FString::FromInt(EachData.Integer32);
-						break;
-					}
-				
-					case 6:
-					{
-						// FLOAT & DOUBLE
+				case 93:
+				{
+					// DATETIME : nanodbc gives "9" as datatype of DateTime.
 
-						EachData.Double = In_Result.get<double>(Index_Column);
-						EachData.Preview = FString::SanitizeFloat(EachData.Double);
-						break;
-					}
+					nanodbc::timestamp Raw_TimeStamp = In_Result.get<nanodbc::timestamp>(Index_Column);
 
-					case 93:
-					{
-						// DATETIME : nanodbc gives "9" as datatype of DateTime.
+					int32 Year = Raw_TimeStamp.year;
+					int32 Month = Raw_TimeStamp.month;
+					int32 Day = Raw_TimeStamp.day;
+					int32 Hours = Raw_TimeStamp.hour;
+					int32 Minutes = Raw_TimeStamp.min;
+					int32 Seconds = Raw_TimeStamp.sec;
 
-						nanodbc::timestamp Raw_TimeStamp = In_Result.get<nanodbc::timestamp>(Index_Column);
+					// We need only first 3 digits.
+					int32 Milliseconds = Raw_TimeStamp.fract / 1000000;
 
-						int32 Year = Raw_TimeStamp.year;
-						int32 Month = Raw_TimeStamp.month;
-						int32 Day = Raw_TimeStamp.day;
-						int32 Hours = Raw_TimeStamp.hour;
-						int32 Minutes = Raw_TimeStamp.min;
-						int32 Seconds = Raw_TimeStamp.sec;
+					EachData.DateTime = FDateTime(Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
+					EachData.Preview = FString::Printf(TEXT("%d-%d-%d %d:%d:%d:%d"), Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
+					break;
+				}
 
-						// We need only first 3 digits.
-						int32 Milliseconds = Raw_TimeStamp.fract / 1000000;
-
-						EachData.DateTime = FDateTime(Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
-						EachData.Preview = FString::Printf(TEXT("%d-%d-%d %d:%d:%d:%d"), Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
-						break;
-					}
-
-					default:
-					{
-						EachData.Note = "Currently there is no parser for this data type. Please convert it to another known type in your query !";
-						break;
-					}
+				default:
+				{
+					EachData.Note = "Currently there is no parser for this data type. Please convert it to another known type in your query !";
+					break;
+				}
 				}
 
 				Temp_Data.Add(FVector2D(Index_Row, Index_Column), EachData);
@@ -249,7 +153,7 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 
 	this->All_Data = Temp_Data;
 	this->RowsCount = Index_Row;
-	
+
 	return true;
 }
 
@@ -289,7 +193,7 @@ int32 UNANODBC_Result::GetRowsCount(FString& Out_Code)
 		Out_Code = "There is no data !";
 		return 0;
 	}
-	
+
 	return this->RowsCount;
 }
 
@@ -347,7 +251,7 @@ bool UNANODBC_Result::GetDataFromRow(FString& Out_Code, TArray<FNANODBC_DataValu
 		Out_Code = "Given row index is out of data pool's range !";
 		return false;
 	}
-	
+
 	const int32 ColumnsCount = this->QueryResult.columns();
 	TArray<FNANODBC_DataValue> Temp_Array;
 

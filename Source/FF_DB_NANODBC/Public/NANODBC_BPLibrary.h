@@ -5,7 +5,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 
 // Custom Includes
-#include "NANODBC_Connection.h"
+#include "Objects/NANODBC_Connection.h"
 
 #include "NANODBC_BPLibrary.generated.h"
 

@@ -2,14 +2,10 @@
 
 #include "CoreMinimal.h"
 
-// UE Includes.
-#include "JsonObjectWrapper.h"
-#include "JsonUtilities.h"
-
 // Custom Includes.
 #include "NANODBC_Includes.h"
 
-#include "NANODBC_Connection.generated.h"
+#include "NANODBC_Result.generated.h"
 
 using namespace nanodbc;
 
@@ -22,19 +18,19 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "Use it for \"datetime, nvarchar, text\""))
 	FString String;
-	
+
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "Use it for \"int32\""))
 	int32 Integer32 = 0;
 
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "Use it for \"int32\""))
 	int64 Integer64 = 0;
-	
+
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
 	double Double = (double)0.f;
-	
+
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
 	bool Bool = false;
-	
+
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = ""))
 	FDateTime DateTime;
 
@@ -79,37 +75,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, AdvancedDisplay)
 	int32 ColumnSize = 0;
-
-};
-
-
-UCLASS(BlueprintType)
-class FF_DB_NANODBC_API UNANODBC_Connection : public UObject
-{
-	GENERATED_BODY()
-
-protected:
-
-	FString ConnectionId;
-	connection NANODBC_Connection;
-
-public:
-
-	virtual void SetConnection(connection In_Connection);
-	virtual bool SetConnectionId(FString In_Id);
-	virtual connection GetConnection();
-
-	UFUNCTION(BlueprintCallable)
-	virtual bool IsConnectionValid();	
-	
-	UFUNCTION(BlueprintCallable)
-	virtual FString GetConnectionId();
-
-	UFUNCTION(BlueprintCallable)
-	virtual bool JustExecute(FString& Out_Code, FString SQL_Query);
-
-	UFUNCTION(BlueprintCallable)
-	virtual bool ExecuteAndGetResult(FString& Out_Code, UNANODBC_Result*& Out_Result, FString SQL_Query);
 
 };
 

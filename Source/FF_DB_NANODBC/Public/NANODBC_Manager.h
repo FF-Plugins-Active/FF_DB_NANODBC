@@ -9,8 +9,8 @@
 #include "Containers/Queue.h"
 
 // Custom Includes.
-#include "NANODBC_Thread.h"
-#include "NANODBC_Connection.h"
+#include "Objects/NANODBC_Thread.h"
+#include "Objects/NANODBC_Connection.h"
 
 #include "NANODBC_Manager.generated.h"
 
@@ -54,7 +54,6 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	TQueue<FNANODBC_Bulk_Query_Struct> SQL_Query_Queue;
-	//TQueue<UNANODBC_Result*> SQL_Query_Results;
 
 	UPROPERTY(BlueprintReadOnly)
 	TMap<FString, UNANODBC_Connection*> MAP_Connections;

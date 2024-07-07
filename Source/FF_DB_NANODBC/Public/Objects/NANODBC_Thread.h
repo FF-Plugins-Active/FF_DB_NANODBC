@@ -7,8 +7,7 @@
 // UE Includes.
 #include "HAL/Runnable.h"
 
-// Custom Includes.
-#include "NANODBC_Connection.h"
+#include "Objects/NANODBC_Connection.h"
 
 // Fordward Declerations.
 class FRunnableThread;

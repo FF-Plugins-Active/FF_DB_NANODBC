@@ -1,10 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "NANODBC_Thread.h"
-#include "NANODBC_Manager.h"
+#include "Objects/NANODBC_Thread.h"
 
 // UE Includes.
 #include "Async/Async.h"
+
+// Custom Includes
+#include "NANODBC_Manager.h"
 
 FDB_Thread_NANODBC::FDB_Thread_NANODBC(ANANODBC_Manager* In_Parent_Actor)
 {

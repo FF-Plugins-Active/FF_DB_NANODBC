@@ -4,6 +4,9 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetStringLibrary.h"
 
+#include "JsonObjectWrapper.h"
+#include "JsonUtilities.h"
+
 THIRD_PARTY_INCLUDES_START
 
 #include <nanodbc/nanodbc.h>
