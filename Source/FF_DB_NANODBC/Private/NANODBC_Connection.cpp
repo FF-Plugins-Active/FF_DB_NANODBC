@@ -200,7 +200,7 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 
 					case 93:
 					{
-						// DATETIME
+						// DATETIME : nanodbc gives "9" as datatype of DateTime.
 
 						nanodbc::timestamp Raw_TimeStamp = In_Result.get<nanodbc::timestamp>(Index_Column);
 
@@ -215,7 +215,7 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 						int32 Milliseconds = Raw_TimeStamp.fract / 1000000;
 
 						EachData.DateTime = FDateTime(Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
-						EachData.Preview = FString::Printf(TEXT("%d-&d-%d %d:%d:%d:%d"), Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
+						EachData.Preview = FString::Printf(TEXT("%d-%d-%d %d:%d:%d:%d"), Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
 						break;
 					}
 
