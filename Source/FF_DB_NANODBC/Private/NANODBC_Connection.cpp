@@ -132,24 +132,28 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 
 				switch (DataType)
 				{
-					// NVARCHAR & DATE & TIME
 					case -9:
 					{
+						// NVARCHAR & DATE & TIME
+
 						EachData.String = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
 						EachData.Preview = EachData.String;
 						break;
 					}
 
-					// INT64 & BIGINT
 					case -5:
 					{
+						// INT64 & BIGINT
+
 						EachData.Integer64 = In_Result.get<long long int>(Index_Column);
 						EachData.Preview = FString::FromInt(EachData.Integer64);
+						break;
 					}
 
-					// TIMESTAMP: nanodbc::timestamp is not SQL timestamp. We use it to check if rows changed since last retriving or not.
 					case -2:
 					{
+						// TIMESTAMP: nanodbc::timestamp is not SQL timestamp. We use it to check if rows changed since last retriving or not.
+
 						std::vector<uint8_t> TempData = In_Result.get<std::vector<std::uint8_t>>(Index_Column);
 						
 						std::stringstream StringStream;
@@ -157,54 +161,47 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 						{
 							StringStream << std::hex << static_cast<int>(EachByte);
 						}
-						
-						/*
-						for (std::size_t Index_Bytes = 0; Index_Bytes < TempData.size(); Index_Bytes++)
-						{
-							if (Index_Bytes != 0)
-							{
-								StringStream << "";
-							}
 
-							StringStream << std::hex << static_cast<int>(TempData[Index_Bytes]);
-						}
-						*/
-
-						unsigned int TimeStampInt = std::stoul(StringStream.str(), nullptr, 16);
-						FString TimeStampString = UTF8_TO_TCHAR(StringStream.str().c_str());
+						const std::string RawString = StringStream.str();
+						const unsigned int TimeStampInt = std::stoul(RawString, nullptr, 16);
+						const FString TimeStampString = UTF8_TO_TCHAR(RawString.c_str());
 
 						EachData.Integer64 = TimeStampInt;
 						EachData.Preview = TimeStampString + " - " + FString::FromInt(TimeStampInt);
 						break;
 					}
 
-					// TEXT
 					case -1:
 					{
+						// TEXT
+
 						EachData.String = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
 						EachData.Preview = EachData.String;
 						break;
 					}
-
-					// INT32
+		
 					case 4:
 					{
+						// INT32
+
 						EachData.Integer32 = In_Result.get<int>(Index_Column);
 						EachData.Preview = FString::FromInt(EachData.Integer32);
 						break;
 					}
-
-					// FLOAT & DOUBLE
+				
 					case 6:
 					{
+						// FLOAT & DOUBLE
+
 						EachData.Double = In_Result.get<double>(Index_Column);
 						EachData.Preview = FString::SanitizeFloat(EachData.Double);
 						break;
 					}
 
-					// DATETIME
 					case 93:
 					{
+						// DATETIME
+
 						nanodbc::timestamp Raw_TimeStamp = In_Result.get<nanodbc::timestamp>(Index_Column);
 
 						int32 Year = Raw_TimeStamp.year;
@@ -217,10 +214,8 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 						// We need only first 3 digits.
 						int32 Milliseconds = Raw_TimeStamp.fract / 1000000;
 
-						FDateTime DateTime = FDateTime(Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
-						EachData.DateTime = DateTime;
+						EachData.DateTime = FDateTime(Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
 						EachData.Preview = FString::Printf(TEXT("%d-&d-%d %d:%d:%d:%d"), Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
-
 						break;
 					}
 
