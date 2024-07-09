@@ -34,7 +34,6 @@ public class FF_DB_NANODBC : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-                "Boost",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
