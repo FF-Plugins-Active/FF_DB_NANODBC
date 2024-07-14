@@ -67,7 +67,7 @@ bool UNANODBC_Connection::JustExecute(FString& Out_Code, FString SQL_Query)
 	return true;
 }
 
-bool UNANODBC_Connection::ExecuteAndGetResult(FString& Out_Code, UNANODBC_Result*& Out_Result, FString SQL_Query)
+bool UNANODBC_Connection::ExecuteAndGetResult(FString& Out_Code, UNANODBC_Result*& Out_Result, FString SQL_Query, bool bRecordResults)
 {
 	if (!NANODBC_Connection.connected())
 	{
@@ -88,6 +88,25 @@ bool UNANODBC_Connection::ExecuteAndGetResult(FString& Out_Code, UNANODBC_Result
 		return false;
 	}
 	
-	Out_Result = NewObject<UNANODBC_Result>();
-	return Out_Result->SetQueryResult(Out_Code, QueryResult);
+	UNANODBC_Result* ResultObject = NewObject<UNANODBC_Result>();
+	
+	if (!ResultObject->SetQueryResult(Out_Code, QueryResult))
+	{
+		return false;
+	}
+
+	if (bRecordResults)
+	{
+		if (!ResultObject->Result_Record(Out_Code))
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	else
+	{
+		return true;
+	}
 }

@@ -4,16 +4,36 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 {
 	if (!In_Result)
 	{
+		Out_Code = "FF DB NANODBC : Input result is not valid !";
 		return false;
 	}
 
 	this->QueryResult = In_Result;
-	const int32 ColumnCount = In_Result.columns();
+	this->Count_Column = In_Result.columns();
+	this->Affected_Rows = In_Result.affected_rows();
 
-	if (In_Result.has_affected_rows() && ColumnCount == 0)
+	Out_Code = "FF DB NANODBC : Result set successfully";
+
+	if (In_Result.has_affected_rows())
 	{
-		Out_Code = "NANODBC : This query is only for updating data. There is no result to show !";
-		return true;
+		Out_Code += " but there is no result because this query is only for updating entries.";
+	}
+
+	return true;
+}
+
+bool UNANODBC_Result::Result_Record(FString& Out_Code)
+{
+	if (!this->QueryResult)
+	{
+		Out_Code = "FF DB NANODBC : Query result is not valid !";
+		return false;
+	}
+
+	if (!this->QueryResult.has_affected_rows() && Count_Column == 0)
+	{
+		Out_Code = "FF DB NANODBC : There is no result to record because this query is only for updating entries.";
+		return false;
 	}
 
 	int32 Index_Row = 0;
@@ -21,13 +41,15 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 
 	try
 	{
-		while (In_Result.next())
+		while (this->QueryResult.next())
 		{
-			for (int32 Index_Column = 0; Index_Column < ColumnCount; Index_Column++)
+			for (int32 Index_Column = 0; Index_Column < this->Count_Column; Index_Column++)
 			{
-				const int32 DataType = In_Result.column_datatype(Index_Column);
-				const FString DataTypeName = UTF8_TO_TCHAR(In_Result.column_datatype_name(Index_Column).c_str());
-				const FString ColumnName = UTF8_TO_TCHAR(In_Result.column_name(Index_Column).c_str());
+				const FVector2D Position = FVector2D(Index_Column, Index_Row);
+
+				const int32 DataType = this->QueryResult.column_datatype(Index_Column);
+				const FString DataTypeName = UTF8_TO_TCHAR(this->QueryResult.column_datatype_name(Index_Column).c_str());
+				const FString ColumnName = UTF8_TO_TCHAR(this->QueryResult.column_name(Index_Column).c_str());
 
 				FNANODBC_DataValue EachData;
 				EachData.DataType = DataType;
@@ -36,11 +58,163 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 
 				switch (DataType)
 				{
+					case -9:
+					{
+						// NVARCHAR & DATE & TIME
+
+						EachData.String = UTF8_TO_TCHAR(this->QueryResult.get<nanodbc::string>(Index_Column).c_str());
+						EachData.Preview = EachData.String;
+						break;
+					}
+
+					case -5:
+					{
+						// INT64 & BIGINT
+
+						EachData.Integer64 = this->QueryResult.get<long long int>(Index_Column);
+						EachData.Preview = FString::FromInt(EachData.Integer64);
+						break;
+					}
+
+					case -2:
+					{
+						// TIMESTAMP: nanodbc::timestamp is not SQL timestamp. We use it to check if rows changed since last retriving or not.
+
+						std::vector<uint8_t> TempData = this->QueryResult.get<std::vector<std::uint8_t>>(Index_Column);
+
+						std::stringstream StringStream;
+						for (auto&& EachByte : TempData)
+						{
+							StringStream << std::hex << static_cast<int>(EachByte);
+						}
+
+						const std::string RawString = StringStream.str();
+						const unsigned int TimeStampInt = std::stoul(RawString, nullptr, 16);
+						const FString TimeStampString = UTF8_TO_TCHAR(RawString.c_str());
+
+						EachData.Integer64 = TimeStampInt;
+						EachData.Preview = TimeStampString + " - " + FString::FromInt(TimeStampInt);
+						break;
+					}
+
+					case -1:
+					{
+						// TEXT
+
+						EachData.String = UTF8_TO_TCHAR(this->QueryResult.get<nanodbc::string>(Index_Column).c_str());
+						EachData.Preview = EachData.String;
+						break;
+					}
+
+					case 4:
+					{
+						// INT32
+
+						EachData.Integer32 = this->QueryResult.get<int>(Index_Column);
+						EachData.Preview = FString::FromInt(EachData.Integer32);
+						break;
+					}
+
+					case 6:
+					{
+						// FLOAT & DOUBLE
+
+						EachData.Double = this->QueryResult.get<double>(Index_Column);
+						EachData.Preview = FString::SanitizeFloat(EachData.Double);
+						break;
+					}
+
+					case 93:
+					{
+						// DATETIME : nanodbc gives "9" as datatype of DateTime.
+
+						nanodbc::timestamp Raw_TimeStamp = this->QueryResult.get<nanodbc::timestamp>(Index_Column);
+
+						int32 Year = Raw_TimeStamp.year;
+						int32 Month = Raw_TimeStamp.month;
+						int32 Day = Raw_TimeStamp.day;
+						int32 Hours = Raw_TimeStamp.hour;
+						int32 Minutes = Raw_TimeStamp.min;
+						int32 Seconds = Raw_TimeStamp.sec;
+
+						// We need only first 3 digits.
+						int32 Milliseconds = Raw_TimeStamp.fract / 1000000;
+
+						EachData.DateTime = FDateTime(Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
+						EachData.Preview = FString::Printf(TEXT("%d-%d-%d %d:%d:%d:%d"), Year, Month, Day, Hours, Minutes, Seconds, Milliseconds);
+						break;
+					}
+
+					default:
+					{
+						EachData.Note = "Currently there is no parser for this data type. Please convert it to another known type in your query !";
+						break;
+					}
+				}
+
+				Temp_Data.Add(Position, EachData);
+			}
+
+			Index_Row += 1;
+		}
+	}
+
+	catch (const std::exception& Exception)
+	{
+		FString ExceptionString = Exception.what();
+
+		if (ExceptionString.Contains("invalid descriptor index"))
+		{
+			ExceptionString += " -> Please update your query like putting columns with long data (for example: text and nvarchar) at the end. This is an ODBC limitation.";
+		}
+
+		Out_Code = ExceptionString;
+		return false;
+	}
+
+	this->Count_Row = Index_Row;
+
+	Out_Code = "FF DB NANODBC : Result successfully recorded !";
+	return true;
+}
+
+bool UNANODBC_Result::Result_Fetch(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Values, int32 Index_Column)
+{
+	if (!this->QueryResult)
+	{
+		Out_Code = "FF DB NANODBC : Query result is not valid !";
+		return false;
+	}
+
+	if (!this->QueryResult.has_affected_rows() && Count_Column == 0)
+	{
+		Out_Code = "FF DB NANODBC : There is no result to record because this query is only for updating entries.";
+		return false;
+	}
+
+	int32 Index_Row = 0;
+	TArray<FNANODBC_DataValue> Temp_Data;
+
+	try
+	{
+		while (this->QueryResult.next())
+		{
+			const int32 DataType = this->QueryResult.column_datatype(Index_Column);
+			const FString DataTypeName = UTF8_TO_TCHAR(this->QueryResult.column_datatype_name(Index_Column).c_str());
+			const FString ColumnName = UTF8_TO_TCHAR(this->QueryResult.column_name(Index_Column).c_str());
+
+			FNANODBC_DataValue EachData;
+			EachData.DataType = DataType;
+			EachData.DataTypeName = DataTypeName;
+			EachData.ColumnName = ColumnName;
+
+			switch (DataType)
+			{
 				case -9:
 				{
 					// NVARCHAR & DATE & TIME
 
-					EachData.String = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
+					EachData.String = UTF8_TO_TCHAR(this->QueryResult.get<nanodbc::string>(Index_Column).c_str());
 					EachData.Preview = EachData.String;
 					break;
 				}
@@ -49,7 +223,7 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 				{
 					// INT64 & BIGINT
 
-					EachData.Integer64 = In_Result.get<long long int>(Index_Column);
+					EachData.Integer64 = this->QueryResult.get<long long int>(Index_Column);
 					EachData.Preview = FString::FromInt(EachData.Integer64);
 					break;
 				}
@@ -58,7 +232,7 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 				{
 					// TIMESTAMP: nanodbc::timestamp is not SQL timestamp. We use it to check if rows changed since last retriving or not.
 
-					std::vector<uint8_t> TempData = In_Result.get<std::vector<std::uint8_t>>(Index_Column);
+					std::vector<uint8_t> TempData = this->QueryResult.get<std::vector<std::uint8_t>>(Index_Column);
 
 					std::stringstream StringStream;
 					for (auto&& EachByte : TempData)
@@ -79,7 +253,7 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 				{
 					// TEXT
 
-					EachData.String = UTF8_TO_TCHAR(In_Result.get<nanodbc::string>(Index_Column).c_str());
+					EachData.String = UTF8_TO_TCHAR(this->QueryResult.get<nanodbc::string>(Index_Column).c_str());
 					EachData.Preview = EachData.String;
 					break;
 				}
@@ -88,7 +262,7 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 				{
 					// INT32
 
-					EachData.Integer32 = In_Result.get<int>(Index_Column);
+					EachData.Integer32 = this->QueryResult.get<int>(Index_Column);
 					EachData.Preview = FString::FromInt(EachData.Integer32);
 					break;
 				}
@@ -97,7 +271,7 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 				{
 					// FLOAT & DOUBLE
 
-					EachData.Double = In_Result.get<double>(Index_Column);
+					EachData.Double = this->QueryResult.get<double>(Index_Column);
 					EachData.Preview = FString::SanitizeFloat(EachData.Double);
 					break;
 				}
@@ -106,7 +280,7 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 				{
 					// DATETIME : nanodbc gives "9" as datatype of DateTime.
 
-					nanodbc::timestamp Raw_TimeStamp = In_Result.get<nanodbc::timestamp>(Index_Column);
+					nanodbc::timestamp Raw_TimeStamp = this->QueryResult.get<nanodbc::timestamp>(Index_Column);
 
 					int32 Year = Raw_TimeStamp.year;
 					int32 Month = Raw_TimeStamp.month;
@@ -128,10 +302,9 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 					EachData.Note = "Currently there is no parser for this data type. Please convert it to another known type in your query !";
 					break;
 				}
-				}
-
-				Temp_Data.Add(FVector2D(Index_Row, Index_Column), EachData);
 			}
+
+			Temp_Data.Add(EachData);
 
 			Index_Row += 1;
 		}
@@ -147,54 +320,28 @@ bool UNANODBC_Result::SetQueryResult(FString& Out_Code, result In_Result)
 		}
 
 		Out_Code = ExceptionString;
-
 		return false;
 	}
+	
+	this->Count_Row = Index_Row;
 
-	this->All_Data = Temp_Data;
-	this->RowsCount = Index_Row;
-
+	Out_Code = "FF DB NANODBC : Result successfully fetched !";
 	return true;
 }
 
-bool UNANODBC_Result::GetAffectedRows(FString& Out_Code, int32& AffectedRows)
+int32 UNANODBC_Result::GetAffectedRows()
 {
-	if (!this->QueryResult)
-	{
-		Out_Code = "Query result is not valid !";
-		return false;
-	}
-
-	if (!QueryResult.has_affected_rows())
-	{
-		Out_Code = "There is no affected rows for this query !";
-		return false;
-	}
-
-	AffectedRows = QueryResult.affected_rows();
-	return true;
+	return this->Affected_Rows;
 }
 
-int32 UNANODBC_Result::GetColumnsCount(FString& Out_Code)
+int32 UNANODBC_Result::GetColumnsCount()
 {
-	if (!this->QueryResult)
-	{
-		Out_Code = "Query result is not valid !";
-		return 0;
-	}
-
-	return this->QueryResult.columns();
+	return this->Count_Column;
 }
 
-int32 UNANODBC_Result::GetRowsCount(FString& Out_Code)
+int32 UNANODBC_Result::GetRowsCount()
 {
-	if (this->All_Data.IsEmpty())
-	{
-		Out_Code = "There is no data !";
-		return 0;
-	}
-
-	return this->RowsCount;
+	return this->Count_Row;
 }
 
 bool UNANODBC_Result::GetMetaData(FString& Out_Code, TArray<FNANODBC_MetaData>& Out_MetaData)
@@ -238,65 +385,119 @@ bool UNANODBC_Result::GetMetaData(FString& Out_Code, TArray<FNANODBC_MetaData>& 
 	return true;
 }
 
-bool UNANODBC_Result::GetDataFromRow(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, const int32 RowIndex)
+bool UNANODBC_Result::GetRow(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, const int32 Index_Row)
 {
-	if (this->All_Data.IsEmpty())
+	if (this->Data_Pool.IsEmpty())
 	{
-		Out_Code = "Data pool is empty !";
+		Out_Code = "FF DB NANODBC : Data pool is empty !";
 		return false;
 	}
 
-	if (RowIndex < 0 && this->RowsCount >= RowIndex)
+	if (Index_Row < 0 || Index_Row >= this->Count_Row)
 	{
-		Out_Code = "Given row index is out of data pool's range !";
+		Out_Code = "FF DB NANODBC : Given row index is out of data pool's range !";
 		return false;
 	}
 
-	const int32 ColumnsCount = this->QueryResult.columns();
 	TArray<FNANODBC_DataValue> Temp_Array;
+	const int32 ColumnsCount = this->QueryResult.columns();
 
 	for (int32 Index_Column = 0; Index_Column < ColumnsCount; Index_Column++)
 	{
-		Temp_Array.Add(*this->All_Data.Find(FVector2D(RowIndex, Index_Column)));
+		const FVector2D Position = FVector2D(Index_Column, Index_Row);
+
+		if (!this->Data_Pool.Contains(Position))
+		{
+			Out_Code = "FF DB NANODBC : Target position couldn't be found ! : " + Position.ToString();
+			return false;
+		}
+
+		FNANODBC_DataValue* EachData = this->Data_Pool.Find(Position);
+
+		if (!EachData)
+		{
+			Out_Code = "FF DB NANODBC : Found data is not valid : " + Position.ToString();
+			return false;
+		}
+
+		Temp_Array.Add(*EachData);
 	}
 
 	Out_Value = Temp_Array;
 	return true;
 }
 
-bool UNANODBC_Result::GetDataFromColumnIndex(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, const int32 ColumnIndex)
+bool UNANODBC_Result::GetColumnFromIndex(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, const int32 Index_Column)
 {
-	if (this->All_Data.IsEmpty())
+	if (this->Data_Pool.IsEmpty())
 	{
 		Out_Code = "Data pool is empty !";
 		return false;
 	}
 
+	if (Index_Column < 0 || Index_Column >= this->Count_Column)
+	{
+		Out_Code = "FF DB SQLAPI : Given column index is out of data pool's range !";
+		return false;
+	}
+
 	TArray<FNANODBC_DataValue> Temp_Array;
 
-	for (int32 Index_Row = 0; Index_Row < this->RowsCount; Index_Row++)
+	for (int32 Index_Row = 0; Index_Row < this->Count_Row; Index_Row++)
 	{
-		Temp_Array.Add(*this->All_Data.Find(FVector2D(Index_Row, ColumnIndex)));
+		const FVector2D Position = FVector2D(Index_Column, Index_Row);
+
+		if (!this->Data_Pool.Contains(Position))
+		{
+			Out_Code = "FF DB NANODBC : Target position couldn't be found ! : " + Position.ToString();
+			return false;
+		}
+
+		FNANODBC_DataValue* EachData = this->Data_Pool.Find(Position);
+
+		if (!EachData)
+		{
+			Out_Code = "FF DB NANODBC : Found data is not valid : " + Position.ToString();
+			return false;
+		}
+
+		Temp_Array.Add(*EachData);
 	}
 
 	Out_Value = Temp_Array;
 	return true;
 }
 
-bool UNANODBC_Result::GetDataFromColumnName(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, FString ColumnName)
+bool UNANODBC_Result::GetColumnFromName(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, FString ColumnName)
 {
-	if (this->All_Data.IsEmpty())
+	if (this->Data_Pool.IsEmpty())
 	{
 		Out_Code = "Data pool is empty !";
 		return false;
 	}
 
-	const int ColumnIndex = this->QueryResult.column(NANODBC_TEXT(TCHAR_TO_UTF8(*ColumnName)));
 	TArray<FNANODBC_DataValue> Temp_Array;
+	const int Index_Column = this->QueryResult.column(NANODBC_TEXT(TCHAR_TO_UTF8(*ColumnName)));
 
-	for (int32 Index_Row = 0; Index_Row < this->RowsCount; Index_Row++)
+	for (int32 Index_Row = 0; Index_Row < this->Count_Row; Index_Row++)
 	{
-		Temp_Array.Add(*this->All_Data.Find(FVector2D(Index_Row, ColumnIndex)));
+		const FVector2D Position = FVector2D(Index_Column, Index_Row);
+
+		if (!this->Data_Pool.Contains(Position))
+		{
+			Out_Code = "FF DB NANODBC : Target position couldn't be found ! : " + Position.ToString();
+			return false;
+		}
+
+		FNANODBC_DataValue* EachData = this->Data_Pool.Find(Position);
+
+		if (!EachData)
+		{
+			Out_Code = "FF DB NANODBC : Found data is not valid : " + Position.ToString();
+			return false;
+		}
+
+		Temp_Array.Add(*EachData);
 	}
 
 	Out_Value = Temp_Array;
@@ -305,22 +506,33 @@ bool UNANODBC_Result::GetDataFromColumnName(FString& Out_Code, TArray<FNANODBC_D
 
 bool UNANODBC_Result::GetSingleData(FString& Out_Code, FNANODBC_DataValue& Out_Value, FVector2D Position)
 {
-	if (this->All_Data.IsEmpty())
+	if (this->Data_Pool.IsEmpty())
 	{
-		Out_Code = "Data pool is empty !";
+		Out_Code = "FF DB NANODBC : Data pool is empty !";
 		return false;
 	}
 
-	FNANODBC_DataValue* TempValue = this->All_Data.Find(Position);
-
-	if (TempValue)
+	if (Position.X < 0 || Position.Y < 0 || Position.X >= this->Count_Column || Position.Y >= this->Count_Row)
 	{
-		Out_Value = *TempValue;
-		return true;
-	}
-
-	else
-	{
+		Out_Code = "FF DB NANODBC : Given position is out of data pool's range !";
 		return false;
 	}
+
+	if (!this->Data_Pool.Contains(Position))
+	{
+		Out_Code = "FF DB NANODBC : Target position couldn't be found ! : " + Position.ToString();
+		return false;
+	}
+
+	FNANODBC_DataValue* DataValue = this->Data_Pool.Find(Position);
+
+	if (!DataValue)
+	{
+		Out_Code = "FF DB NANODBC : Found data is not valid !" + Position.ToString();
+		return false;
+	}
+
+	Out_Code = "FF DB NANODBC : Target Cell exported successfuly !";
+	Out_Value = *DataValue;
+	return true;
 }

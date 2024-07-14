@@ -36,6 +36,6 @@ public:
 	virtual bool JustExecute(FString& Out_Code, FString SQL_Query);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool ExecuteAndGetResult(FString& Out_Code, UNANODBC_Result*& Out_Result, FString SQL_Query);
+	virtual bool ExecuteAndGetResult(FString& Out_Code, UNANODBC_Result*& Out_Result, FString SQL_Query, bool bRecordResults);
 
 };

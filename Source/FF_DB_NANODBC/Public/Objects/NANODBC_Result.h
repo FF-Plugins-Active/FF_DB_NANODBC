@@ -86,33 +86,42 @@ class FF_DB_NANODBC_API UNANODBC_Result : public UObject
 protected:
 
 	result QueryResult;
-	TMap<FVector2D, FNANODBC_DataValue> All_Data;
-	int32 RowsCount = 0;
+	TMap<FVector2D, FNANODBC_DataValue> Data_Pool;
+	
+	int32 Count_Row = 0;
+	int32 Count_Column = 0;
+	int32 Affected_Rows = 0;
 
 public:
 
 	virtual bool SetQueryResult(FString& Out_Code, result In_Result);
 
-	UFUNCTION(BlueprintPure)
-	virtual bool GetAffectedRows(FString& Out_Code, int32& AffectedRows);
+	UFUNCTION(BlueprintCallable)
+	virtual bool Result_Record(FString& Out_Code);
+
+	UFUNCTION(BlueprintCallable)
+	virtual bool Result_Fetch(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Values, int32 Index_Column);
 
 	UFUNCTION(BlueprintPure)
-	virtual int32 GetColumnsCount(FString& Out_Code);
+	virtual int32 GetAffectedRows();
 
 	UFUNCTION(BlueprintPure)
-	virtual int32 GetRowsCount(FString& Out_Code);
+	virtual int32 GetColumnsCount();
+
+	UFUNCTION(BlueprintPure)
+	virtual int32 GetRowsCount();
 
 	UFUNCTION(BlueprintCallable)
 	virtual bool GetMetaData(FString& Out_Code, TArray<FNANODBC_MetaData>& Out_MetaData);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool GetDataFromRow(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, const int32 RowIndex);
+	virtual bool GetRow(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, const int32 Index_Row);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool GetDataFromColumnIndex(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, const int32 ColumnIndex);
+	virtual bool GetColumnFromIndex(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, const int32 Index_Column);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool GetDataFromColumnName(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, FString ColumnName);
+	virtual bool GetColumnFromName(FString& Out_Code, TArray<FNANODBC_DataValue>& Out_Value, FString ColumnName);
 
 	UFUNCTION(BlueprintCallable)
 	virtual bool GetSingleData(FString& Out_Code, FNANODBC_DataValue& Out_Value, FVector2D Position);
