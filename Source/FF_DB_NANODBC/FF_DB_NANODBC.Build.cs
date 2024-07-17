@@ -9,6 +9,7 @@ public class FF_DB_NANODBC : ModuleRules
 	public FF_DB_NANODBC(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+        bEnableExceptions = true;
 
         if (UnrealTargetPlatform.Win64 == Target.Platform)
         {
