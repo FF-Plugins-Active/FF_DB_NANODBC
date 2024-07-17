@@ -24,7 +24,6 @@ public class FF_DB_NANODBC : ModuleRules
 				"Json",
                 "JsonUtilities",
                 "JsonBlueprintUtilities",
-				 // ... add other public dependencies that you statically link with here ...
 			}
 			);
 
@@ -35,14 +34,13 @@ public class FF_DB_NANODBC : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				// ... add private dependencies that you statically link with here ...	
 			}
 			);
 		
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{
-				// ... add any modules that your module loads dynamically here ...
+
 			}
 			);
 	}
