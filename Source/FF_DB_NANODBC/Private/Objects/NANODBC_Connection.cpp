@@ -53,7 +53,7 @@ bool UNANODBC_Connection::JustExecute(FString& Out_Code, FString SQL_Query)
 
 	try
 	{
-		just_execute(this->NANODBC_Connection, NANODBC_TEXT(TCHAR_TO_UTF8(*SQL_Query));
+		just_execute(this->NANODBC_Connection, NANODBC_TEXT(TCHAR_TO_UTF8(*SQL_Query)));
 	}
 
 	catch (const std::exception& Exception)
