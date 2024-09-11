@@ -111,6 +111,8 @@ bool FDB_Thread_NANODBC::CallbackProcessQuery(FString& Out_Code, result& Out_Res
 		}
 
 		Out_Result = TempResult;
+
+		delete (QueryString);
 		return true;
 	}
 
@@ -127,6 +129,7 @@ bool FDB_Thread_NANODBC::CallbackProcessQuery(FString& Out_Code, result& Out_Res
 			return false;
 		}
 
+		delete (QueryString);
 		return true;
 	}
 }

@@ -51,11 +51,9 @@ bool UNANODBC_Connection::JustExecute(FString& Out_Code, FString SQL_Query)
 		return false;
 	}
 
-	const ANSICHAR* QueryString = NANODBC_TEXT(TCHAR_TO_UTF8(*SQL_Query));
-
 	try
 	{
-		just_execute(this->NANODBC_Connection, QueryString);
+		just_execute(this->NANODBC_Connection, NANODBC_TEXT(TCHAR_TO_UTF8(*SQL_Query));
 	}
 
 	catch (const std::exception& Exception)
@@ -74,12 +72,11 @@ bool UNANODBC_Connection::ExecuteAndGetResult(FString& Out_Code, UNANODBC_Result
 		return false;
 	}
 	
-	const ANSICHAR* QueryString = NANODBC_TEXT(TCHAR_TO_UTF8(*SQL_Query));
 	result QueryResult;
 	
 	try
 	{
-		QueryResult = execute(this->NANODBC_Connection, QueryString);
+		QueryResult = execute(this->NANODBC_Connection, NANODBC_TEXT(TCHAR_TO_UTF8(*SQL_Query)));
 	}
 
 	catch (const std::exception& Exception)
